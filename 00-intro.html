@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>00 시작하기 — 왜 행동 설계인가 · 행동 설계, 눈으로 보기</title>
+<link rel="stylesheet" href="shared/theme.css">
+<style>
+  .use-card{cursor:pointer; user-select:none;}
+  .use-card .reveal{display:none; margin-top:10px; font-size:13px; color:var(--muted); line-height:1.6;}
+  .use-card.open .reveal{display:block;}
+  .use-card.open{border-color:var(--q);}
+  .use-card.open .clickhint{display:none;}
+  .use-emoji{font-size:30px; line-height:1;}
+  .maprow{display:flex; align-items:center; gap:10px; padding:10px 0; text-decoration:none;}
+  .mapnum{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--accent,var(--q)); font-weight:700; min-width:64px;}
+  .maparrow{text-align:center; color:var(--faint); font-size:16px; margin:-2px 0;}
+  .twocol{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media(max-width:680px){ .twocol{grid-template-columns:1fr;} }
+  .colbox{background:var(--panel-2); border:1px solid var(--line); border-radius:14px; padding:14px;}
+  .colbox h4{margin:0 0 10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topnav" id="topnav"></div>
+
+  <header>
+    <div class="tag">START HERE · Chapter 00</div>
+    <h1>왜 행동 설계인가 — NPC의 머릿속을 들여다보기</h1>
+    <p class="intro">게임 속 적은 어떻게 "쫓다가 도망치고", 로봇청소기는 어떻게 "막히면 돌아갈까요"? 누군가 그 <b>의사결정의 뼈대</b>를 설계했기 때문이에요. 이 코스는 그 두 가지 대표 방법, <b>유한 상태 기계(FSM)</b> 와 <b>행동 트리(Behavior Tree)</b> 를 다룹니다. 먼저 왜·무엇을 배우는지 둘러봐요.</p>
+  </header>
+
+  <nav class="stepper" id="stepper">
+    <button data-s="0" class="active">00 · 어디에나</button>
+    <button data-s="1">01 · 유령의 머릿속</button>
+    <button data-s="2">02 · 두 가지 설계법</button>
+    <button data-s="3">03 · 코스 지도</button>
+  </nav>
+
+  <!-- STEP 0 -->
+  <section class="panel show" data-panel="0">
+    <span class="kicker" style="color:var(--hot)">Step 00 — It's Everywhere</span>
+    <h2>보이지 않는 의사결정기는 어디에나 있다</h2>
+    <p class="lead">화면 속에서 "스스로 판단하는 것처럼" 보이는 건 거의 다 행동 설계의 결과예요. 카드를 눌러 확인해 보세요.</p>
+    <div class="grid3" id="useCards"></div>
+    <p class="note" style="margin-top:16px">→ 공통점: <b>"상황에 따라 다음 행동을 고른다."</b> 이걸 사람이 매번 if문으로 짜는 대신, <b>상태(FSM)</b> 나 <b>행동 트리(BT)</b> 라는 구조로 깔끔하게 설계합니다. 그게 이 코스예요.</p>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="panel" data-panel="1">
+    <span class="kicker" style="color:var(--q)">Step 01 — Inside a Ghost's Head</span>
+    <h2>팩맨 유령: 한 번에 하나의 "모드"</h2>
+    <p class="lead">팩맨의 유령은 단순하지만 영리해요. 평소엔 <b>추격(Chase)</b> 과 <b>흩어짐(Scatter)</b> 을 오가다가, 당신이 <b>파워 펠릿</b> 을 먹으면 <b>도망(Frightened)</b> 으로 바뀌죠. 동시에 두 모드가 되진 않아요 — 이게 <b>상태 기계</b> 입니다. 버튼을 눌러 모드를 바꿔보세요.</p>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div id="ghostBoard"></div>
+      <div style="flex:1;min-width:200px">
+        <div class="row" style="gap:8px;margin-bottom:12px">
+          <button class="btn" id="gTimer">🔄 모드 타이머</button>
+          <button class="btn" id="gPellet">🔵 파워 펠릿</button>
+          <button class="btn" id="gTime">⏰ 효과 끝</button>
+        </div>
+        <div id="ghostInfo" class="callout"></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px">→ 노란 테두리가 <b>현재 모드</b>예요. "상황(파워 펠릿·타이머)이 모드를 바꾼다" — 이 단순한 규칙으로 유령은 살아있는 듯 행동해요. PART 1에서 이 FSM을 제대로 배웁니다.</p>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" data-panel="2">
+    <span class="kicker" style="color:var(--v)">Step 02 — Two Ways to Design</span>
+    <h2>같은 NPC, 두 가지 설계도</h2>
+    <p class="lead">"적이 가까우면 공격, 아니면 순찰"하는 NPC를 만든다고 해봐요. <b>똑같은 행동</b>을 두 방식으로 그릴 수 있어요. 아래 토글로 상황을 바꾸면 양쪽이 <b>같은 결정</b>을 내려요.</p>
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn" id="enemyToggle">적: 멀다</button>
+    </div>
+    <div class="twocol">
+      <div class="colbox"><h4 style="color:var(--q)">방법 A · 상태 기계 (FSM)</h4><div id="fsmMini"></div></div>
+      <div class="colbox"><h4 style="color:var(--v)">방법 B · 행동 트리 (BT)</h4><div id="btMini"></div></div>
+    </div>
+    <div class="callout v" style="margin-top:14px">
+      <div class="ttl">언제 무엇을?</div>
+      <p style="margin:0"><b>FSM</b>: 모드가 적고 명확할 때 깔끔(신호등·캐릭터 상태). <b>BT</b>: 행동이 많고 우선순위·반응이 복잡할 때 강함(게임 AI·로봇). 둘의 장단점과 "전이 폭발 vs 가지 추가"는 <b>13장</b>에서 끝까지 비교해요.</p>
+    </div>
+    <p class="note" style="margin-top:12px">→ 같은 입력에 같은 행동이지만 <b>구조가 달라요</b>. FSM은 "모드와 화살표", BT는 "위에서부터 시도하는 가지". 둘 다 배워두면 문제에 맞는 걸 고를 수 있어요.</p>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" data-panel="3">
+    <span class="kicker" style="color:var(--good)">Step 03 — Your Learning Map</span>
+    <h2>이 코스에서 배울 것 — 그리고 왜 이 순서인지</h2>
+    <p class="lead">먼저 <b>FSM</b>(상태·전이)을 익히고 그 한계를 본 뒤, <b>행동 트리</b>(tick·Sequence·Selector…)로 넘어가, 마지막에 <b>둘을 비교</b>해요. 같은 NPC를 두 방식으로 만들어 대조하는 게 핵심이에요.</p>
+    <div id="courseMap"></div>
+    <p class="note" style="margin-top:16px">→ 준비됐다면 <a href="01-states.html" style="color:var(--q);font-weight:700">CH 01 · 상태와 전이</a>부터 시작하세요.</p>
+  </section>
+
+  <p class="foot">// 수식 없는 입문 챕터 · 직관 먼저, 자세한 동작은 다음 챕터부터 · <a href="index.html">목차</a></p>
+</div>
+
+<script src="shared/lib.js"></script>
+<script>
+VZ.mountTopnav('#topnav', '00 · Intro');
+VZ.setupStepper();
+const SM = VZ.SM, BT = VZ.BT;
+
+// ---------- STEP 0 : 어디에나 ----------
+(function(){
+  const USES = [
+    ['👾','게임 적 / 팩맨 유령','쫓고·숨고·도망치는 적의 "모드 전환"이 전부 상태 기계예요. 패턴이 너무 뻔하면 재미가 깨지죠.'],
+    ['🤖','로봇청소기','"청소 중 → 벽 만남 → 회전 → 다시 청소", 배터리 낮으면 "충전소 복귀". 전형적인 상태/행동 설계.'],
+    ['🚦','신호등 · 엘리베이터','빨강→초록→노랑, 층 요청 처리… 정해진 모드를 순서대로 도는 가장 단순한 FSM.'],
+    ['💬','챗봇 · 주문 흐름','"인사 → 메뉴 → 주문 확인 → 결제". 대화도 상태로 흐르고, 조건에 따라 분기해요.'],
+    ['📱','앱 화면 상태','로딩 → 성공/실패, 로그인 ↔ 로그아웃. UI도 사실 상태 기계로 설계하면 버그가 줄어요.'],
+    ['🦾','자율 로봇 · 드론','"순찰 → 장애물 회피 → 임무 수행". 복잡한 임무는 보통 행동 트리(BT)로 짜요.'],
+  ];
+  document.getElementById('useCards').innerHTML = USES.map((u,i)=>
+    `<div class="card use-card" data-i="${i}">
+       <div class="use-emoji">${u[0]}</div>
+       <h4 style="margin:8px 0 0">${u[1]}</h4>
+       <div class="reveal">${u[2]}</div>
+       <div class="note clickhint" style="margin-top:8px;font-size:11px;color:var(--faint)">클릭해서 보기 ▾</div>
+     </div>`).join('');
+  document.getElementById('useCards').addEventListener('click', e=>{
+    const c=e.target.closest('.use-card'); if(!c) return; c.classList.toggle('open');
+  });
+})();
+
+// ---------- STEP 1 : 유령 FSM ----------
+(function(){
+  const states = [
+    {id:'chase',   label:'추격', x:120, y:85},
+    {id:'scatter', label:'흩어짐', x:400, y:85},
+    {id:'fright',  label:'도망', x:260, y:235},
+  ];
+  const trans = [
+    {from:'chase', to:'scatter', label:'타이머'},
+    {from:'scatter', to:'chase', label:'타이머'},
+    {from:'chase', to:'fright', label:'파워펠릿'},
+    {from:'scatter', to:'fright', label:'파워펠릿'},
+    {from:'fright', to:'chase', label:'효과 끝'},
+    {from:'fright', to:'scatter', label:'효과 끝'},
+  ];
+  const desc = {
+    chase:'팩맨을 직접 쫓아가요. 빨간 유령(블링키)의 기본 모드죠.',
+    scatter:'각자 구석으로 흩어져요. 잠깐 숨 돌릴 틈을 줍니다.',
+    fright:'파랗게 질려 도망쳐요! 지금이 잡아먹을 기회.',
+  };
+  let cur='chase', prev='chase', returnTo='chase', hint='';
+  function render(){
+    const t = trans.map(x=>({...x, active: (x.from===prev && x.to===cur && prev!==cur)}));
+    document.getElementById('ghostBoard').innerHTML = SM.draw(states, t, {W:520,H:300,active:cur});
+    const lbl = states.find(s=>s.id===cur).label;
+    const hintHtml = hint ? `<p style="margin:8px 0 0;color:var(--faint);font-size:12px">${hint}</p>` : '';
+    document.getElementById('ghostInfo').innerHTML =
+      `<div class="ttl" style="color:var(--hot)">현재 모드: ${lbl}</div><p style="margin:0">${desc[cur]}</p>${hintHtml}`;
+  }
+  function go(next){ prev=cur; cur=next; hint=''; render(); }
+  function ignore(msg){ prev=cur; hint=msg; render(); }
+  document.getElementById('gTimer').onclick = ()=>{
+    if(cur==='chase') go('scatter');
+    else if(cur==='scatter') go('chase');
+    else ignore('🚫 도망 중엔 타이머가 안 먹혀요. 먼저 "효과 끝"으로 빠져나오세요.');
+  };
+  document.getElementById('gPellet').onclick = ()=>{
+    if(cur!=='fright'){ returnTo=cur; go('fright'); }
+    else ignore('🚫 이미 도망 모드예요. 파워 펠릿은 추격/흩어짐 중에만 효과가 있어요.');
+  };
+  document.getElementById('gTime').onclick = ()=>{
+    if(cur==='fright') go(returnTo);
+    else ignore('🚫 "효과 끝"은 도망 모드일 때만 의미가 있어요. 지금은 바뀔 게 없어요.');
+  };
+  render();
+})();
+
+// ---------- STEP 2 : 두 설계법 ----------
+(function(){
+  let enemyClose = false, fired = null; // fired: 방금 일어난 전이('toAttack'|'toPatrol'|null)
+  const tog = document.getElementById('enemyToggle');
+
+  // FSM: idle(순찰) ↔ attack(공격), 적 거리로 결정
+  const fsmStates = [
+    {id:'patrol', label:'순찰', x:90,  y:80},
+    {id:'attack', label:'공격', x:300, y:80},
+  ];
+  // BT: ? [ →(적가까움?→공격), 순찰 ]
+  function buildBT(){
+    return { id:'root', type:'selector', name:'행동',
+      children:[
+        { id:'seq', type:'sequence', name:'전투',
+          children:[
+            { id:'cond', type:'condition', name:'적이 가까운가?', fn:bb=>bb.enemyClose?'success':'failure' },
+            { id:'atk', type:'action', name:'공격', fn:()=>'success' },
+          ]},
+        { id:'patrol', type:'action', name:'순찰', fn:()=>'success' },
+      ]};
+  }
+  function render(){
+    const fsmCur = enemyClose ? 'attack' : 'patrol';
+    // Step1과 동일하게 "방금 일어난 전이"만 강조 (현재 상태로 항상 켜두지 않음)
+    const ft = [
+      {from:'patrol', to:'attack', label:'적 가까움', active: fired==='toAttack'},
+      {from:'attack', to:'patrol', label:'적 멀어짐', active: fired==='toPatrol'},
+    ];
+    document.getElementById('fsmMini').innerHTML = SM.draw(fsmStates, ft, {W:380,H:170,active:fsmCur,r:30});
+    const {visited} = BT.tick(buildBT(), {enemyClose});
+    const map={}; visited.forEach(v=>map[v.id]=v.status);
+    document.getElementById('btMini').innerHTML = BT.draw(buildBT(), map, {W:380}) +
+      `<div class="note" style="margin-top:8px;font-size:11px;color:var(--faint);line-height:1.7">
+        <b style="color:var(--v)">?</b> 셀렉터 — 위에서부터 <b>하나라도 성공</b>할 때까지 시도 ·
+        <b style="color:var(--q)">→</b> 시퀀스 — 왼쪽부터 <b>모두 성공</b>해야 통과</div>`;
+  }
+  tog.onclick = ()=>{ enemyClose=!enemyClose;
+    fired = enemyClose ? 'toAttack' : 'toPatrol';
+    tog.textContent = enemyClose?'적: 가깝다':'적: 멀다';
+    tog.style.borderColor = enemyClose?'var(--hot)':'var(--q)';
+    tog.style.color = enemyClose?'var(--hot)':'var(--q)';
+    render(); };
+  render();
+})();
+
+// ---------- STEP 3 : 코스 지도 ----------
+(function(){
+  const MAP = [
+    ['CH 01~06','유한 상태 기계 (FSM)','상태·전이·트리거부터 계층적 FSM·상태 스택, 그리고 "전이 폭발"이라는 한계까지.','01-states.html','var(--q)'],
+    ['CH 07~12','행동 트리 (Behavior Tree)','tick과 3가지 상태 → Sequence·Selector·Decorator·Blackboard → 같은 NPC를 BT로.','07-tick.html','var(--v)'],
+    ['CH 13','FSM vs Behavior Tree','같은 NPC를 나란히 두고 확장성·반응성을 비교. "언제 무엇을 쓸까?"','13-compare.html','var(--good)'],
+  ];
+  document.getElementById('courseMap').innerHTML = MAP.map((m,i)=>
+    `${i>0?'<div class="maparrow">↓</div>':''}
+     <a class="maprow" href="${m[3]}" style="--accent:${m[4]}">
+       <span class="mapnum">${m[0]}</span>
+       <span style="flex:1"><b style="color:var(--ink)">${m[1]}</b><div class="note" style="margin-top:2px">${m[2]}</div></span>
+       <span style="color:${m[4]};font-size:18px">→</span>
+     </a>`).join('');
+})();
+</script>
+</body>
+</html>
