@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>13 FSM vs Behavior Tree · 행동 설계, 눈으로 보기</title>
+<link rel="stylesheet" href="shared/theme.css">
+<style>
+  .cmp{display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start;}
+  @media(max-width:760px){ .cmp{grid-template-columns:1fr;} }
+  .cmp .side{background:var(--panel-2); border:1px solid var(--line); border-radius:14px; padding:16px; overflow-x:auto;}
+  .cmp .side h4{margin:0 0 6px; font-size:14px; display:flex; align-items:center; gap:8px;}
+  .cmp .side .badge{font-family:'JetBrains Mono',monospace; font-size:10px; padding:2px 7px; border-radius:6px; font-weight:700;}
+  .cmp .side.fsm{border-color:rgba(55,189,248,.3);}
+  .cmp .side.fsm .badge{background:rgba(55,189,248,.15); color:var(--q);}
+  .cmp .side.bt{border-color:rgba(192,132,252,.3);}
+  .cmp .side.bt .badge{background:rgba(192,132,252,.15); color:var(--v);}
+  .verdict{display:inline-block; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700;
+    padding:4px 10px; border-radius:7px; margin-top:8px;}
+  .verdict.ok{background:rgba(52,211,153,.14); color:var(--good); border:1px solid rgba(52,211,153,.3);}
+  .cmptable{width:100%; border-collapse:collapse; font-size:13.5px; margin-top:10px;}
+  .cmptable th,.cmptable td{padding:11px 12px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top;}
+  .cmptable th{font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.08em;}
+  .cmptable td:first-child{font-weight:700; color:var(--ink); white-space:nowrap;}
+  .cmptable .fcol{color:var(--q);} .cmptable .bcol{color:var(--v);}
+  .countbox{display:flex; gap:18px; flex-wrap:wrap; margin:14px 0;}
+  .countbox .stat{flex:1; min-width:150px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px;}
+  .countbox .stat .num{font-family:'JetBrains Mono',monospace; font-size:30px; font-weight:800; line-height:1.1;}
+  .countbox .stat.fsm .num{color:var(--q);} .countbox .stat.bt .num{color:var(--v);}
+  .countbox .stat .lbl{font-size:12px; color:var(--muted); margin-top:4px;}
+  .countbox .stat .delta{font-family:'JetBrains Mono',monospace; font-size:11px; margin-top:6px; color:var(--hot);}
+  .guidegrid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:8px;}
+  @media(max-width:680px){ .guidegrid{grid-template-columns:1fr;} }
+  .guidecard{border-radius:14px; padding:18px; border:1px solid var(--line);}
+  .guidecard.fsm{background:rgba(55,189,248,.05); border-color:rgba(55,189,248,.25);}
+  .guidecard.bt{background:rgba(192,132,252,.05); border-color:rgba(192,132,252,.25);}
+  .guidecard h4{margin:0 0 10px; font-size:15px;}
+  .guidecard.fsm h4{color:var(--q);} .guidecard.bt h4{color:var(--v);}
+  .guidecard ul{margin:0; padding-left:18px;} .guidecard li{font-size:13.5px; color:var(--muted); margin:6px 0; line-height:1.6;}
+  .guidecard li b{color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topnav" id="topnav"></div>
+
+  <header>
+    <div class="tag">PART 3 · COMPARISON</div>
+    <h1>FSM vs Behavior Tree — 언제 무엇을</h1>
+    <p class="intro">같은 NPC(<b>순찰·추격·공격·도망</b>)를 <b>FSM</b>과 <b>행동 트리</b>로 나란히 놓고 비교해요. 같은 입력에 같은 행동이 나오는지 동시에 점등해 확인하고, 행동을 추가할 때 <b>전이 폭발</b> vs <b>가지 추가</b>가 어떻게 갈리는지, 반응성·모듈성은 어떻게 다른지, 그리고 결국 <b>언제 무엇을 쓸지</b>까지 짚어봅니다.</p>
+  </header>
+
+  <nav class="stepper" id="stepper">
+    <button data-s="0" class="active">00 · 같은 NPC, 두 표현</button>
+    <button data-s="1">01 · 확장성</button>
+    <button data-s="2">02 · 반응성 &amp; 모듈성</button>
+    <button data-s="3">03 · 언제 무엇을</button>
+  </nav>
+
+  <!-- STEP 0 -->
+  <section class="panel show" data-panel="0">
+    <span class="kicker" style="color:var(--hot)">Step 00 — One NPC, Two Representations</span>
+    <h2>같은 NPC를 FSM과 BT로 동시에</h2>
+    <p class="lead">두 슬라이더(<b>적 거리</b>·<b>체력</b>)가 <b>공유 blackboard</b>예요. 왼쪽 FSM 그래프와 오른쪽 행동 트리가 <b>같은 입력</b>을 받아 동시에 점등돼요. 우선순위 규칙은 <b>도망 → 공격 → 추격 → 순찰</b> 순서로 같습니다.</p>
+    <div class="ctrl"><label>적 거리</label><input type="range" id="d0" min="0" max="14" step="0.5" value="5"><span class="val" id="d0v">5</span></div>
+    <div class="ctrl"><label>체력</label><input type="range" id="h0" min="0" max="100" step="5" value="80"><span class="val" id="h0v">80</span></div>
+    <div class="cmp" style="margin-top:14px">
+      <div class="side fsm">
+        <h4><span class="badge">FSM</span> 상태 그래프</h4>
+        <div id="fsmBoard0"></div>
+      </div>
+      <div class="side bt">
+        <h4><span class="badge">BT</span> 행동 트리 (매 tick 재평가)</h4>
+        <div id="btBoard0"></div>
+      </div>
+    </div>
+    <div id="cmp0Info" class="callout good" style="margin-top:14px"></div>
+    <p class="note" style="margin-top:6px">→ 같은 (거리, 체력)에서 양쪽이 <b>항상 같은 행동</b>을 내요. 표현 방식만 다를 뿐 결정 규칙은 동일합니다. 다만 <b>도달하는 방법</b>이 달라요 — FSM은 "현재 상태에서 어디로 갈지" 전이를 따지고, BT는 매번 루트부터 <b>우선순위대로 다시 평가</b>해요.</p>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="panel" data-panel="1">
+    <span class="kicker" style="color:var(--q)">Step 01 — Scalability</span>
+    <h2>확장성: 전이 폭발 vs 가지 추가</h2>
+    <p class="lead">새 행동을 추가해 봐요. <b>"도망"·"엄폐"·"치료"</b> 같은 <b>전역 우선 행동</b>(어느 상태에서든 진입 가능)을 하나씩 켜면 — FSM은 <b>모든 상태에서 그 행동으로 가는 전이</b>를 새로 그어야 하지만, BT는 <b>가지 하나</b>만 끼우면 끝나요.</p>
+    <div class="row" id="featBtns" style="gap:8px;margin:6px 0 4px"></div>
+    <div class="countbox">
+      <div class="stat fsm"><div class="num" id="fsmCount">0</div><div class="lbl">FSM이 새로 그은 전이</div><div class="delta" id="fsmDelta"></div></div>
+      <div class="stat bt"><div class="num" id="btCount">0</div><div class="lbl">BT가 새로 끼운 가지</div><div class="delta" id="btDelta"></div></div>
+    </div>
+    <div class="cmp">
+      <div class="side fsm">
+        <h4><span class="badge">FSM</span> 전이가 누적돼요</h4>
+        <div id="fsmBoard1"></div>
+      </div>
+      <div class="side bt">
+        <h4><span class="badge">BT</span> 가지만 늘어나요</h4>
+        <div id="btBoard1"></div>
+      </div>
+    </div>
+    <div class="callout q" style="margin-top:14px">
+      <div class="ttl">왜 이렇게 갈릴까</div>
+      <p style="margin:0 0 6px">전역 행동 하나를 추가할 때 FSM은 "<b>기존 상태마다 → 새 행동</b>" 전이(N개)에 복귀 1개까지 — 행동 하나당 <b>약 N+1개</b>가 늘어요. (모든 상태가 서로 오갈 수 있는 최악의 경우 전이는 <b>N×(N−1)</b>까지 가는데, 그건 또 다른 시나리오예요.) BT는 같은 행동을 <b>가지 딱 1개</b>로 추가하죠.</p>
+      <p style="margin:0">BT는 <b>Selector 맨 앞</b>에 <code>Sequence[조건 → 행동]</code> 가지 하나를 끼우면 끝. 우선순위는 "위에 있을수록 먼저"라는 위치로 자연히 표현돼, <b>다른 가지를 건드릴 필요가 없어요</b>(모듈성).</p>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" data-panel="2">
+    <span class="kicker" style="color:var(--v)">Step 02 — Reactivity &amp; Modularity</span>
+    <h2>반응성과 모듈성</h2>
+    <p class="lead">두 방식의 성격 차이를 표로 정리해요. 핵심은 <b>BT는 매 tick 루트부터 재평가</b>(자동 반응)하고 <b>가지를 재사용</b>할 수 있는 반면, FSM은 <b>명시적 전이</b>로만 움직이고 문맥을 <b>상태 안에 은닉</b>한다는 점이에요.</p>
+    <table class="cmptable">
+      <thead><tr><th>관점</th><th class="fcol">FSM</th><th class="bcol">Behavior Tree</th></tr></thead>
+      <tbody>
+        <tr><td>평가 방식</td><td>현재 상태에서 <b>전이만</b> 검사</td><td>매 tick <b>루트부터 전체</b> 재평가</td></tr>
+        <tr><td>반응성</td><td>전이를 명시해야 반응 (안 그으면 못 감)</td><td>상황 바뀌면 <b>자동</b>으로 더 높은 우선 가지로 전환</td></tr>
+        <tr><td>우선순위</td><td>전이 검사 순서/가드로 암묵 표현</td><td>Selector 자식 <b>위치 = 우선순위</b> (명시적)</td></tr>
+        <tr><td>모듈성·재사용</td><td>상태가 서로 얽혀 떼어내기 어려움</td><td>서브트리(가지)를 <b>그대로 재사용</b></td></tr>
+        <tr><td>문맥(기억)</td><td><b>상태 자체</b>가 기억 — 어디 있는지가 곧 문맥</td><td>기본은 무상태, 기억은 <b>blackboard</b>·Running으로</td></tr>
+        <tr><td>확장 비용</td><td>전이 폭발 (N×(N−1))</td><td>가지 추가 (선형)</td></tr>
+        <tr><td>디버깅</td><td>"왜 이 상태?" — 전이 경로 추적</td><td>"왜 이 잎?" — tick 평가 순서 추적</td></tr>
+        <tr><td>약점</td><td>상태·전이 많아지면 스파게티</td><td>매 tick 전체 평가 비용, 트리가 깊어질 수 있음</td></tr>
+      </tbody>
+    </table>
+    <div class="callout v" style="margin-top:18px">
+      <div class="ttl">한 줄 직관</div>
+      <p style="margin:0"><b>FSM</b> = "지금 <u>어디</u>에 있나"(현재 상태가 핵심). <b>BT</b> = "지금 <u>무엇이</u> 가장 급한가"를 매 순간 위에서부터 다시 묻기. 그래서 BT는 갑작스러운 위협에 더 잘 반응하고, FSM은 정해진 모드 흐름을 더 또렷하게 표현해요.</p>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" data-panel="3">
+    <span class="kicker" style="color:var(--good)">Step 03 — When to Use Which</span>
+    <h2>언제 무엇을 쓸까</h2>
+    <p class="lead">어느 하나가 항상 우월하진 않아요. <b>문제의 모양</b>에 맞춰 고르는 게 핵심이에요.</p>
+    <div class="guidegrid">
+      <div class="guidecard fsm">
+        <h4>FSM이 잘 맞을 때</h4>
+        <ul>
+          <li><b>상태가 적고 명확</b>할 때 — 한눈에 들어오는 모드 집합</li>
+          <li><b>예측 가능한 순서/모드</b> — 정해진 흐름이 있는 절차</li>
+          <li><b>UI 화면 흐름</b> — 로그인 → 홈 → 설정 같은 화면 전환</li>
+          <li><b>애니메이션 상태</b> — idle/walk/jump 등 배타적 모션</li>
+          <li><b>프로토콜·라이프사이클</b> — 연결/대기/종료 같은 단계</li>
+        </ul>
+      </div>
+      <div class="guidecard bt">
+        <h4>BT가 잘 맞을 때</h4>
+        <ul>
+          <li><b>우선순위·반응</b>이 중요 — 급한 일이 끼어드는 상황</li>
+          <li><b>복잡한 분기</b> — 조건 조합이 많고 자주 바뀜</li>
+          <li><b>재사용·모듈화</b> — 공통 가지를 여러 캐릭터가 공유</li>
+          <li><b>게임 AI</b> — 적·동료 NPC의 풍부한 행동</li>
+          <li><b>로봇·자율행동</b> — 센서 변화에 매 tick 재반응</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout good" style="margin-top:18px">
+      <div class="ttl">결정 가이드 + 균형 잡힌 결론</div>
+      <p style="margin:0 0 8px"><b>빠른 판별:</b> 상태 5~6개 안에서 흐름이 또렷하면 <b style="color:var(--q)">FSM</b>. 우선순위가 자주 뒤집히거나 행동이 계속 늘 것 같으면 <b style="color:var(--v)">BT</b>. 애매하면 <b>작게 FSM으로 시작</b>했다가 전이가 폭발하기 시작할 때 <b>BT로 이주</b>하는 것도 좋은 전략이에요.</p>
+      <p style="margin:0 0 8px"><b>둘을 섞기도 해요:</b> 흔한 패턴은 <b>BT의 잎(leaf)에 작은 FSM을 넣는</b> 거예요 — 상위는 BT로 우선순위·반응을 잡고, 개별 행동 내부의 모션 단계(조준→발사→재장전)는 FSM으로 깔끔하게 처리하죠.</p>
+      <p style="margin:0">결론적으로 <b>은탄환은 없어요</b>. FSM은 단순·명확함에서, BT는 확장성·반응성에서 강해요. 문제 규모와 변화의 빈도를 보고 고르세요.</p>
+    </div>
+  </section>
+
+  <p class="foot">// 양쪽 그래프·tick은 동일한 blackboard로 실제 로직이 구동됩니다. · <a href="index.html">목차</a></p>
+</div>
+
+<script src="shared/lib.js"></script>
+<script>
+VZ.mountTopnav('#topnav', '13 · FSM vs BT');
+VZ.setupStepper();
+const SM = VZ.SM, BT = VZ.BT;
+
+// ============================================================
+// 공유 결정 로직 — 03(FSM)·12(BT)와 동일한 우선순위 규칙
+//   ① HP≤25 → 도망  ② 거리≤3 → 공격  ③ 거리≤8 → 추격  ④ 그 외 → 순찰
+// ============================================================
+function decideState(dist, hp){
+  if(hp <= 25) return 'flee';
+  if(dist <= 3) return 'attack';
+  if(dist <= 8) return 'chase';
+  return 'patrol';
+}
+const LABELS = {patrol:'순찰', chase:'추격', attack:'공격', flee:'도망'};
+
+// 같은 NPC 상태 배치 (03과 동일한 다이아몬드형)
+const NPC_STATES = [
+  {id:'patrol', label:'순찰', x:120, y:170},
+  {id:'chase',  label:'추격', x:290, y:70},
+  {id:'attack', label:'공격', x:460, y:170},
+  {id:'flee',   label:'도망', x:290, y:280},
+];
+
+// ---- 같은 NPC를 BT로: Selector(우선순위) + Sequence[조건→행동] ----
+// fn은 공유 blackboard(bb={dist,hp})를 읽어 success/failure 반환
+function buildNpcTree(){
+  return {
+    id:'root', type:'selector', name:'행동선택',
+    children:[
+      { id:'fseq', type:'sequence', name:'도망?',
+        children:[
+          { id:'fcond', type:'condition', name:'HP≤25?', fn:bb=>bb.hp<=25?'success':'failure' },
+          { id:'flee',  type:'action',    name:'도망', fn:()=>'success' },
+        ]},
+      { id:'aseq', type:'sequence', name:'공격?',
+        children:[
+          { id:'acond', type:'condition', name:'거리≤3?', fn:bb=>bb.dist<=3?'success':'failure' },
+          { id:'attack',type:'action',    name:'공격', fn:()=>'success' },
+        ]},
+      { id:'cseq', type:'sequence', name:'추격?',
+        children:[
+          { id:'ccond', type:'condition', name:'거리≤8?', fn:bb=>bb.dist<=8?'success':'failure' },
+          { id:'chase', type:'action',    name:'추격', fn:()=>'success' },
+        ]},
+      { id:'patrol', type:'action', name:'순찰', fn:()=>'success' },
+    ]
+  };
+}
+
+// BT의 성공 잎(=실제 수행 행동)을 NPC 상태 id로 매핑
+const BT_LEAF_TO_STATE = {flee:'flee', attack:'attack', chase:'chase', patrol:'patrol'};
+// tick 결과(visited)에서 어떤 행동 잎이 success 했는지 → 상태 추출
+function btDecide(dist, hp){
+  const {visited} = BT.tick(buildNpcTree(), {dist, hp});
+  for(const v of visited){
+    if(BT_LEAF_TO_STATE[v.id] && v.status==='success') return BT_LEAF_TO_STATE[v.id];
+  }
+  return 'patrol';
+}
+
+// ============================================================
+// STEP 0 : 같은 NPC, 두 표현 — 공유 슬라이더로 동시 점등
+// ============================================================
+(function(){
+  const dIn = document.getElementById('d0'), hIn = document.getElementById('h0');
+  const fsmTrans = [
+    {from:'patrol', to:'chase',  label:'적 발견'},
+    {from:'chase',  to:'attack', label:'근접'},
+    {from:'attack', to:'chase',  label:'멀어짐'},
+    {from:'chase',  to:'patrol', label:'놓침'},
+    {from:'patrol', to:'flee',   label:'HP≤25'},
+    {from:'chase',  to:'flee',   label:'HP≤25'},
+    {from:'attack', to:'flee',   label:'HP≤25'},
+    {from:'flee',   to:'patrol', label:'회복'},
+  ];
+  function activeEdge(state, dist){
+    if(state==='flee')   return {from: dist<=3?'attack':dist<=8?'chase':'patrol', to:'flee'};
+    if(state==='attack') return {from:'chase',  to:'attack'};
+    if(state==='chase')  return {from:'patrol', to:'chase'};
+    return {from:'chase', to:'patrol'};
+  }
+  function render(){
+    const dist = +dIn.value, hp = +hIn.value;
+    document.getElementById('d0v').textContent = dist;
+    document.getElementById('h0v').textContent = hp;
+    const state = decideState(dist, hp);
+
+    // FSM 그래프
+    const edge = activeEdge(state, dist);
+    const t = fsmTrans.map(x=>({...x, active: x.from===edge.from && x.to===edge.to}));
+    document.getElementById('fsmBoard0').innerHTML = SM.draw(NPC_STATES, t, {W:520, H:340, active:state});
+
+    // BT 트리 — 같은 blackboard로 tick, 평가 순서대로 statusMap
+    const {visited} = BT.tick(buildNpcTree(), {dist, hp});
+    const map = {}; visited.forEach(v=>map[v.id]=v.status);
+    document.getElementById('btBoard0').innerHTML = BT.draw(buildNpcTree(), map);
+
+    // 검산: FSM 결정 == BT 결정?
+    const btState = btDecide(dist, hp);
+    const same = (btState === state);
+    document.getElementById('cmp0Info').innerHTML =
+      `<div class="ttl" style="color:var(--good)">FSM: ${LABELS[state]} · BT: ${LABELS[btState]}</div>
+       <p style="margin:0">같은 입력 (거리 ${dist}, 체력 ${hp}) → 양쪽 모두 <b>${LABELS[state]}</b>.
+       <span class="verdict ok">✓ 같은 행동 (${same?'일치':'불일치!'})</span></p>`;
+  }
+  dIn.addEventListener('input', render);
+  hIn.addEventListener('input', render);
+  render();
+})();
+
+// ============================================================
+// STEP 1 : 확장성 — 전역 행동 추가 시 전이 폭발 vs 가지 추가
+// ============================================================
+(function(){
+  // 추가 가능한 "전역 우선 행동" (어느 상태에서든 진입)
+  const FEATURES = [
+    {id:'cover', label:'엄폐', stColor:'var(--blue)'},
+    {id:'heal',  label:'치료', stColor:'var(--pink)'},
+    {id:'taunt', label:'도발', stColor:'var(--hot)'},
+  ];
+  const on = {}; FEATURES.forEach(f=>on[f.id]=false);
+
+  // 기본 NPC: 4상태 + 8전이 / BT 기본 노드 수 = 트리 전체 노드 수
+  const BASE_STATES = ['patrol','chase','attack','flee'];
+  const BASE_TRANS = [
+    {from:'patrol', to:'chase'},{from:'chase', to:'attack'},
+    {from:'attack', to:'chase'},{from:'chase', to:'patrol'},
+    {from:'patrol', to:'flee'},{from:'chase', to:'flee'},
+    {from:'attack', to:'flee'},{from:'flee', to:'patrol'},
+  ];
+  function countTreeNodes(n){ return 1 + (n.children||[]).reduce((s,c)=>s+countTreeNodes(c),0); }
+  const BASE_BT_NODES = countTreeNodes(buildNpcTree());
+
+  // 새 전역 행동의 그래프 배치 (오른쪽 아래로 쌓기)
+  const NEW_POS = {
+    cover: {x:470, y:300}, heal: {x:120, y:300}, taunt: {x:470, y:40},
+  };
+
+  const btnWrap = document.getElementById('featBtns');
+  btnWrap.innerHTML = FEATURES.map(f=>`<button class="btn" data-f="${f.id}">+ ${f.label} 추가</button>`).join('');
+
+  function render(){
+    const active = FEATURES.filter(f=>on[f.id]);
+
+    // ---- FSM: 새 전역 행동마다 "기존 모든 상태 → 새 상태" 전이 추가 ----
+    const states = [...NPC_STATES];
+    let trans = BASE_TRANS.map(x=>({...x}));
+    active.forEach(f=>{
+      const p = NEW_POS[f.id];
+      states.push({id:f.id, label:f.label, x:p.x, y:p.y});
+      // 기존 4개 상태 각각에서 새 행동으로 (전이 폭발), + 복귀 1개
+      BASE_STATES.forEach(s=>trans.push({from:s, to:f.id}));
+      trans.push({from:f.id, to:'patrol'});
+    });
+    const fsmTransCount = trans.length;
+
+    // ---- BT: Selector 맨 앞에 가지(Sequence[cond→action]) 하나씩 ----
+    const tree = buildNpcTree();
+    active.forEach((f,i)=>{
+      tree.children.splice(i, 0, {
+        id:f.id+'seq', type:'sequence', name:f.label+'?',
+        children:[
+          {id:f.id+'c', type:'condition', name:f.label+'조건', fn:()=>'failure'},
+          {id:f.id,     type:'action',    name:f.label, fn:()=>'success'},
+        ]
+      });
+    });
+    const btNodeCount = countTreeNodes(tree);
+
+    // 그래프 렌더
+    document.getElementById('fsmBoard1').innerHTML = SM.draw(states, trans, {W:520, H:360, active:null});
+    document.getElementById('btBoard1').innerHTML = BT.draw(tree, {});
+
+    // 카운터: 같은 축("행동 1개 추가 비용")으로 공정 비교 — FSM은 새 전이 수, BT는 새 가지 수.
+    const addedF = fsmTransCount - BASE_TRANS.length;   // 새 행동마다 (상태 N개 + 복귀 1)
+    const addedB = active.length;                       // 새 행동마다 가지 딱 1개
+    document.getElementById('fsmCount').textContent = addedF;
+    document.getElementById('btCount').textContent = addedB;
+    document.getElementById('fsmDelta').textContent = active.length ? `행동 ${active.length}개 추가 → 전이 +${addedF}개` : `추가 전 (기본 전이 ${BASE_TRANS.length}개)`;
+    document.getElementById('btDelta').textContent  = active.length ? `행동 ${active.length}개 추가 → 가지 +${addedB}개` : '추가 전 (기본 가지 4개)';
+
+    // 버튼 토글 표시
+    btnWrap.querySelectorAll('button').forEach(b=>{
+      const f = b.dataset.f;
+      b.style.opacity = on[f] ? 1 : .85;
+      const feat = FEATURES.find(x=>x.id===f);
+      b.textContent = (on[f] ? '− ' : '+ ') + feat.label + (on[f] ? ' 제거' : ' 추가');
+    });
+  }
+  btnWrap.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    on[b.dataset.f] = !on[b.dataset.f];
+    render();
+  });
+  render();
+})();
+</script>
+</body>
+</html>

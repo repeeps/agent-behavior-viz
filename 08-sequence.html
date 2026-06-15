@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>08 Sequence · 행동 설계, 눈으로 보기</title>
+<link rel="stylesheet" href="shared/theme.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topnav" id="topnav"></div>
+
+  <header>
+    <div class="tag">PART 2 · BEHAVIOR TREE</div>
+    <h1>Sequence — 모두 성공해야 통과하는 AND 게이트</h1>
+    <p class="intro"><b>Sequence(→)</b>는 자식을 <b>왼쪽에서 오른쪽으로</b> 차례차례 실행해요. 하나라도 <b>Failure</b>면 즉시 멈추고 실패를 돌려주고, <b>전부 Success</b>여야 비로소 성공이에요. 논리의 <b>AND</b>처럼 동작하죠. 그래서 앞 단계가 실패하면 뒤는 평가조차 하지 않아요(단축평가).</p>
+  </header>
+
+  <nav class="stepper" id="stepper">
+    <button data-s="0" class="active">00 · → 는 AND</button>
+    <button data-s="1">01 · 문 열고 들어가기</button>
+    <button data-s="2">02 · 단축평가</button>
+    <button data-s="3">03 · Running 전파</button>
+  </nav>
+
+  <!-- STEP 0 -->
+  <section class="panel show" data-panel="0">
+    <span class="kicker" style="color:var(--hot)">Step 00 — Sequence is AND</span>
+    <h2><span class="mono" style="color:var(--hot)">→</span> 는 AND다</h2>
+    <p class="lead">Sequence는 자식을 <b>왼→오 순서</b>로 실행해요. 진행 규칙은 딱 세 줄이에요.</p>
+    <div class="grid3">
+      <div class="card" style="border-color:rgba(52,211,153,.4)"><h4 style="color:var(--good)">✓ 다음으로</h4><p class="note">자식이 <b>Success</b>면 → 그 다음 자식으로 넘어가요.</p></div>
+      <div class="card" style="border-color:rgba(251,113,133,.4)"><h4 style="color:var(--k)">✗ 즉시 중단</h4><p class="note">자식이 <b>Failure</b>면 → 거기서 멈추고 Sequence도 <b>Failure</b>. 뒤는 건너뜀.</p></div>
+      <div class="card" style="border-color:rgba(251,191,36,.4)"><h4 style="color:var(--hot)">… 멈춰서 대기</h4><p class="note">자식이 <b>Running</b>이면 → Sequence도 <b>Running</b>. 다음 tick에 <b>루트부터 다시</b> 훑어도 같은 자리에서 Running이 이어져요.</p></div>
+    </div>
+    <div class="callout good" style="margin-top:18px">
+      <div class="ttl">한 줄 요약</div>
+      <p style="margin:0"><b>전부 Success여야 Success</b>. 하나라도 실패하면 전체 실패. 논리 <code>A AND B AND C</code> 와 똑같아요. 그래서 "<b>이 조건들이 모두 충족되면 이 행동들을 순서대로 해라</b>"를 표현할 때 써요.</p>
+    </div>
+    <div class="chart-wrap" id="treeBoard0"></div>
+    <p class="note" style="margin-top:8px"><span class="mono" style="color:var(--hot)">→</span> 가 Sequence예요. 위 예시는 <b>[열쇠있나? → 문연다 → 들어간다]</b>. 셋이 모두 성공해야 방에 들어가요.</p>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="panel" data-panel="1">
+    <span class="kicker" style="color:var(--q)">Step 01 — Open Door &amp; Enter</span>
+    <h2>문 열고 들어가기</h2>
+    <p class="lead">시퀀스 <b>[열쇠있나?(조건) → 문연다 → 들어간다]</b> 예요. 열쇠 상태를 토글하고 <b>▶ tick</b>을 눌러보세요. 열쇠가 <b>없으면</b> 첫 조건이 Failure라서 나머지는 회색(건너뜀)으로 남아요.</p>
+    <div class="ctrl" style="margin-bottom:6px">
+      <label>열쇠 상태</label>
+      <button class="btn" id="keyToggle">🔑 열쇠: 없음</button>
+    </div>
+    <div class="row" style="margin:8px 0"><button class="btn" id="tickBtn1">▶ tick 실행</button><span class="val" id="rootStatus1" style="min-width:auto"></span></div>
+    <div class="chart-wrap" id="treeBoard1"></div>
+    <div id="tickLog1" class="callout q" style="margin-top:6px"></div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" data-panel="2">
+    <span class="kicker" style="color:var(--v)">Step 02 — Short-circuit</span>
+    <h2>단축평가 — 앞이 실패하면 뒤는 의미 없다</h2>
+    <p class="lead">Sequence는 <b>AND</b>니까, 앞 조건이 이미 실패했다면 뒤 조건을 따져봐야 결과는 어차피 실패예요. 그래서 <b>첫 실패 지점에서 즉시 멈춰요</b>. 조건 4개를 켜고 끄면서 <b>어디서 멈추는지</b> 실험해보세요.</p>
+    <div class="ctrl" style="gap:10px;margin-bottom:6px" id="condToggles"></div>
+    <div class="row" style="margin:8px 0"><button class="btn" id="tickBtn2">▶ tick 실행</button><span class="val" id="rootStatus2" style="min-width:auto"></span></div>
+    <div class="chart-wrap" id="treeBoard2"></div>
+    <div id="tickLog2" class="callout v" style="margin-top:6px"></div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" data-panel="3">
+    <span class="kicker" style="color:var(--good)">Step 03 — Running Propagation</span>
+    <h2>Running 전파 — 진행 중이면 거기서 멈춘다</h2>
+    <p class="lead">자식이 <b style="color:var(--hot)">Running</b>(예: 이동 중)을 돌려주면, Sequence는 <b>Failure도 Success도 아니라 Running</b>을 위로 전해요. 다음 tick엔 <b>루트부터 다시</b> 훑지만(이 엔진은 무상태), 앞 조건이 여전히 성공이고 이동이 안 끝났으면 <b>같은 자리에서 Running이 반복</b>돼요 — 사실상 이어가는 것처럼 보이죠. <b>▶ 다음 tick</b>을 반복해서 눌러보세요.</p>
+    <div class="row" style="margin:8px 0"><button class="btn" id="tickBtn3">▶ 다음 tick</button><button class="btn" id="resetBtn3" style="border-color:var(--faint);color:var(--muted);background:transparent">↺ 처음으로</button><span class="val" id="rootStatus3" style="min-width:auto"></span></div>
+    <div class="chart-wrap" id="treeBoard3"></div>
+    <div id="tickLog3" class="callout good" style="margin-top:6px"></div>
+  </section>
+
+  <p class="foot">// tick 평가는 실제 BT 로직(단축평가)으로 동작합니다. · <a href="index.html">목차</a></p>
+</div>
+
+<script src="shared/lib.js"></script>
+<script>
+VZ.mountTopnav('#topnav', '08 · Sequence');
+VZ.setupStepper();
+const BT = VZ.BT;
+
+const COLOF = s => s==='success'?'var(--good)':s==='failure'?'var(--k)':s==='running'?'var(--hot)':'var(--faint)';
+
+// 점등 애니메이션: VZ.stepLight로 visited 순서대로 점등(연타 시 이전 타이머 자동 취소)
+function animate(tree, visited, renderFn){
+  const statusMap={};
+  VZ.stepLight(visited, v=>{ statusMap[v.id]=v.status; renderFn(statusMap); }, 420);
+}
+
+// ---------- STEP 0 : 구조만 ----------
+(function(){
+  const tree = {
+    id:'root', type:'sequence', name:'방에 들어가기',
+    children:[
+      { id:'c', type:'condition', name:'열쇠 있나?' },
+      { id:'a1', type:'action', name:'문 연다' },
+      { id:'a2', type:'action', name:'들어간다' },
+    ]
+  };
+  document.getElementById('treeBoard0').innerHTML = BT.draw(tree, {}, {W:520});
+})();
+
+// ---------- STEP 1 : 문 열고 들어가기 ----------
+(function(){
+  let hasKey = false;
+  const tog = document.getElementById('keyToggle');
+  const nameOf = {root:'방에 들어가기(→)', c:'열쇠 있나?', a1:'문 연다', a2:'들어간다'};
+  function buildTree(){
+    return {
+      id:'root', type:'sequence', name:'방에 들어가기',
+      children:[
+        { id:'c', type:'condition', name:'열쇠 있나?', fn:bb=>bb.hasKey?'success':'failure' },
+        { id:'a1', type:'action', name:'문 연다', fn:()=>'success' },
+        { id:'a2', type:'action', name:'들어간다', fn:()=>'success' },
+      ]
+    };
+  }
+  function render(statusMap){
+    document.getElementById('treeBoard1').innerHTML = BT.draw(buildTree(), statusMap||{}, {W:520});
+  }
+  tog.onclick = ()=>{
+    hasKey = !hasKey;
+    tog.textContent = hasKey ? '🔑 열쇠: 있음' : '🔑 열쇠: 없음';
+    tog.style.borderColor = hasKey ? 'var(--good)' : 'var(--q)';
+    tog.style.color = hasKey ? 'var(--good)' : 'var(--q)';
+    render({});
+    document.getElementById('tickLog1').innerHTML='';
+    document.getElementById('rootStatus1').textContent='';
+  };
+  document.getElementById('tickBtn1').onclick = ()=>{
+    const tree = buildTree();
+    const {status, visited} = BT.tick(tree, {hasKey});
+    animate(tree, visited, render);
+    document.getElementById('rootStatus1').innerHTML = `Sequence = <b style="color:${COLOF(status)}">${status}</b>`;
+    document.getElementById('tickLog1').innerHTML =
+      `<div class="ttl">평가 순서 (왼→오, 단축평가)</div>` +
+      visited.map(v=>`<span class="mono" style="color:${COLOF(v.status)}">${nameOf[v.id]||v.id} → ${v.status}</span>`).join('<br>') +
+      `<p class="note" style="margin:8px 0 0">${hasKey
+        ? '열쇠가 있어 첫 조건 성공 → 문 연다 성공 → 들어간다 성공. 셋 다 통과해서 Sequence가 <b style="color:var(--good)">Success</b>.'
+        : '열쇠가 없어 첫 조건이 <b style="color:var(--k)">Failure</b> → Sequence 즉시 중단. <b>문 연다·들어간다는 평가조차 안 됐어요</b>(회색=건너뜀).'}</p>`;
+  };
+  render({});
+})();
+
+// ---------- STEP 2 : 단축평가 ----------
+(function(){
+  const labels = ['전원 켜짐?','네트워크 연결?','로그인됨?','권한 있음?'];
+  const ids = ['c0','c1','c2','c3'];
+  let on = [true, true, false, true]; // 기본: 셋째에서 멈춤 데모
+  const togWrap = document.getElementById('condToggles');
+
+  function renderToggles(){
+    togWrap.innerHTML = ids.map((id,i)=>
+      `<button class="btn cond-tog" data-i="${i}" style="border-color:${on[i]?'var(--good)':'var(--k)'};color:${on[i]?'var(--good)':'var(--k)'}">${labels[i]}: ${on[i]?'✓':'✗'}</button>`
+    ).join('');
+    togWrap.querySelectorAll('.cond-tog').forEach(b=>{
+      b.onclick = ()=>{ const i=+b.dataset.i; on=on.map((v,k)=>k===i?!v:v); renderToggles(); render({});
+        document.getElementById('tickLog2').innerHTML=''; document.getElementById('rootStatus2').textContent=''; };
+    });
+  }
+  function buildTree(){
+    return {
+      id:'root', type:'sequence', name:'부팅 체크',
+      children: ids.map((id,i)=>({ id, type:'condition', name:labels[i], fn:()=> on[i]?'success':'failure' }))
+    };
+  }
+  function render(statusMap){
+    document.getElementById('treeBoard2').innerHTML = BT.draw(buildTree(), statusMap||{}, {W:560});
+  }
+  document.getElementById('tickBtn2').onclick = ()=>{
+    const tree = buildTree();
+    const {status, visited} = BT.tick(tree, {});
+    animate(tree, visited, render);
+    const failIdx = on.indexOf(false);
+    document.getElementById('rootStatus2').innerHTML = `Sequence = <b style="color:${COLOF(status)}">${status}</b>`;
+    const nameOf = {root:'부팅 체크(→)'}; ids.forEach((id,i)=>nameOf[id]=labels[i]);
+    document.getElementById('tickLog2').innerHTML =
+      `<div class="ttl">평가 순서 (왼→오)</div>` +
+      visited.map(v=>{
+        const isStop = (failIdx>=0 && v.id===ids[failIdx]);
+        return `<span class="mono" style="color:${COLOF(v.status)}">${nameOf[v.id]||v.id} → ${v.status}${isStop?'  ◀ 여기서 멈춤':''}</span>`;
+      }).join('<br>') +
+      `<p class="note" style="margin:8px 0 0">${failIdx>=0
+        ? `${failIdx+1}번째 조건 <b style="color:var(--k)">${labels[failIdx]}</b>이 실패 → Sequence가 즉시 멈춰서 <b>뒤의 ${4-(failIdx+1)}개 조건은 평가조차 안 했어요</b>. 앞이 실패하면 뒤는 따져봐야 어차피 실패니까요.`
+        : `4개 조건이 모두 성공 → Sequence가 <b style="color:var(--good)">Success</b>. 멈춤 없이 끝까지 평가했어요.`}</p>`;
+  };
+  renderToggles();
+  render({});
+})();
+
+// ---------- STEP 3 : Running 전파 ----------
+(function(){
+  // 이동 액션은 2 tick 동안 running, 3번째 tick에 success.
+  let walkProgress = 0;   // 0,1 → running, 2 → success
+  const nameOf = {root:'심부름(→)', c:'길 보임?', move:'목적지로 이동', arrive:'도착 보고'};
+
+  function buildTree(){
+    return {
+      id:'root', type:'sequence', name:'심부름',
+      children:[
+        { id:'c', type:'condition', name:'길 보임?', fn:()=>'success' },
+        { id:'move', type:'action', name:'목적지로 이동', fn:()=> walkProgress>=2 ? 'success' : 'running' },
+        { id:'arrive', type:'action', name:'도착 보고', fn:()=>'success' },
+      ]
+    };
+  }
+  function render(statusMap){
+    document.getElementById('treeBoard3').innerHTML = BT.draw(buildTree(), statusMap||{}, {W:520});
+  }
+  function reset(){
+    walkProgress = 0;
+    render({});
+    document.getElementById('rootStatus3').textContent='';
+    document.getElementById('tickLog3').innerHTML =
+      `<div class="ttl">시작 전</div><p class="note" style="margin:0">▶ 다음 tick을 누르면 매번 루트부터 다시 훑어요. 이동은 처음 두 tick 동안 <b style="color:var(--hot)">Running</b>이었다가, 세 번째 tick에 <b style="color:var(--good)">Success</b>로 끝나요. Running일 땐 Sequence도 Running이라 뒤의 "도착 보고"는 아직 실행 안 돼요.</p>`;
+  }
+  document.getElementById('tickBtn3').onclick = ()=>{
+    const tree = buildTree();
+    const {status, visited} = BT.tick(tree, {});
+    animate(tree, visited, render);
+    document.getElementById('rootStatus3').innerHTML = `Sequence = <b style="color:${COLOF(status)}">${status}</b>`;
+    const tickNo = walkProgress + 1;
+    let msg;
+    if(status==='running'){
+      msg = `조건 성공 → 이동이 아직 <b style="color:var(--hot)">Running</b>이라 Sequence도 Running. <b>"도착 보고"는 평가 안 됨</b>(회색). 다음 tick엔 <b>루트부터 다시</b> 훑되, 이동이 끝날 때까지 같은 자리에서 Running이 반복돼요.`;
+    } else {
+      msg = `이동이 드디어 <b style="color:var(--good)">Success</b> → 다음 자식 "도착 보고"까지 진행 → 전부 성공이라 Sequence가 <b style="color:var(--good)">Success</b>. 심부름 완료!`;
+    }
+    document.getElementById('tickLog3').innerHTML =
+      `<div class="ttl">tick #${tickNo}</div>` +
+      visited.map(v=>`<span class="mono" style="color:${COLOF(v.status)}">${nameOf[v.id]||v.id} → ${v.status}</span>`).join('<br>') +
+      `<p class="note" style="margin:8px 0 0">${msg}</p>`;
+    // 다음 tick 준비: 아직 도착 전이면 진행도 증가
+    if(walkProgress < 2) walkProgress++;
+  };
+  document.getElementById('resetBtn3').onclick = reset;
+  reset();
+})();
+</script>
+</body>
+</html>

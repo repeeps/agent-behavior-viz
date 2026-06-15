@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>12 BT NPC · 행동 설계, 눈으로 보기</title>
+<link rel="stylesheet" href="shared/theme.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topnav" id="topnav"></div>
+
+  <header>
+    <div class="tag">PART 2 · BEHAVIOR TREE</div>
+    <h1>같은 NPC를 행동 트리로</h1>
+    <p class="intro">3장에서 FSM으로 만든 그 <b>적 캐릭터</b>(순찰·추격·공격·도망)를 이번엔 <b>행동 트리(BT)</b>로 다시 만들어요. 동작 규칙은 똑같아요 — 체력이 낮으면 도망, 적이 가까우면 공격, 보이면 추격, 그 외엔 순찰. 다만 전이 화살표 대신 <b>우선순위 Selector</b> 하나로 표현해, 같은 결정을 훨씬 단순하게 내립니다.</p>
+  </header>
+
+  <nav class="stepper" id="stepper">
+    <button data-s="0" class="active">00 · 03의 NPC를 트리로</button>
+    <button data-s="1">01 · 상황 → tick → 행동</button>
+    <button data-s="2">02 · 반응성</button>
+    <button data-s="3">03 · 우선순위 = 트리 순서</button>
+  </nav>
+
+  <!-- STEP 0 -->
+  <section class="panel show" data-panel="0">
+    <span class="kicker" style="color:var(--hot)">Step 00 — Same NPC, as a Tree</span>
+    <h2>03의 NPC를 트리로</h2>
+    <p class="lead">3장의 NPC는 <b>네 모드 사이를 화살표(전이)</b>로 오갔어요. BT에서는 같은 행동을 <b>우선순위 Selector</b>(<span class="mono" style="color:var(--q)">?</span>) 하나로 표현해요. Selector는 왼쪽 가지부터 차례로 시도하다가 <b>처음 성공한 가지에서 멈춰요</b>. 그래서 <b>왼쪽일수록 우선순위가 높죠.</b></p>
+    <div class="callout v">
+      <div class="ttl">트리 모양</div>
+      <p style="margin:0"><span class="mono" style="color:var(--q)">?</span> [ <span class="mono" style="color:var(--hot)">→</span>(체력낮음?→도망) · <span class="mono" style="color:var(--hot)">→</span>(적가까움?→공격) · <span class="mono" style="color:var(--hot)">→</span>(적보임?→추격) · 순찰 ]</p>
+      <p style="margin:8px 0 0">각 <span class="mono" style="color:var(--hot)">→</span>(Sequence)는 "<b>조건이 참이면 그 행동을 한다</b>"는 묶음이에요. 조건이 거짓이면 Sequence가 실패해 Selector가 다음 가지로 넘어가요. 맨 오른쪽 <b>순찰</b>은 조건 없이 항상 성공하는 <b>기본 행동</b>(fallback)이에요.</p>
+    </div>
+    <div class="chart-wrap" id="treeBoard0"></div>
+    <p class="note" style="margin-top:8px">→ <span class="mono" style="color:var(--q)">?</span>=Selector(하나 성공할 때까지), <span class="mono" style="color:var(--hot)">→</span>=Sequence(모두 성공해야), 파란 둥근 칸=조건, 회색 둥근 칸=행동. 03의 전이 규칙표가 그대로 <b>가지의 왼→오 순서</b>가 됐어요. 다음 스텝에서 직접 tick 해봐요.</p>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="panel" data-panel="1">
+    <span class="kicker" style="color:var(--q)">Step 01 — Situation → tick → Behavior</span>
+    <h2>상황 → tick → 행동</h2>
+    <p class="lead">거리·체력 슬라이더가 곧 <b>blackboard</b>(NPC가 보는 세계 상태)예요. 값을 정하고 <b>▶ tick</b>을 누르면 루트부터 평가한 <b>순서대로</b> 노드가 점등되고, 선택된 행동이 표시돼요. <b>03 FSM과 똑같은 결정</b>을 내리는지 확인해 보세요.</p>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div style="flex:1;min-width:240px">
+        <div class="ctrl"><label>적 거리</label><input type="range" id="dist1" min="0" max="14" step="0.5" value="6"><span class="val" id="dist1v">6</span></div>
+        <div class="ctrl"><label>체력</label><input type="range" id="hp1" min="0" max="100" step="5" value="80"><span class="val" id="hp1v">80</span></div>
+        <div class="row" style="margin:8px 0"><button class="btn" id="tickBtn">▶ tick 실행</button><span class="val" id="rootStatus" style="min-width:auto"></span></div>
+        <div id="tickLog" class="callout v" style="margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="chart-wrap" id="treeBoard1" style="margin-top:14px"></div>
+    <p class="note" style="margin-top:8px">→ Selector는 <b>처음 성공한 가지</b>에서 멈춰요. 그 오른쪽 가지들은 <b>평가조차 안 돼</b> 회색으로 남아요(= 건너뜀). 선택된 행동만 초록으로 켜집니다.</p>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" data-panel="2">
+    <span class="kicker" style="color:var(--v)">Step 02 — Reactivity</span>
+    <h2>반응성 — 매 tick 루트부터 다시 본다</h2>
+    <p class="lead">BT는 <b>매 tick마다 루트부터 트리를 통째로 재평가</b>해요. 그래서 추격 중에 체력이 뚝 떨어지면, 다음 tick에서 <b>도망 가지가 먼저 성공</b>하므로 <b>즉시 도망으로 전환</b>돼요. FSM이라면 "추격→도망" 전이 화살표를 미리 그려놨어야 하지만, BT는 <b>자동 재평가</b>가 이걸 공짜로 해줘요.</p>
+    <div class="callout good">
+      <div class="ttl">해보기 — 추격 중 체력 떨어뜨리기</div>
+      <p style="margin:0">거리를 <b>6</b>(추격 범위) 근처에 두고 <b>연속 tick</b>을 누른 뒤, 체력 슬라이더를 <b>25 이하</b>로 내려 보세요. 명시적 전이를 만들지 않았는데도 다음 tick에서 바로 <b>도망</b>으로 바뀌어요.</p>
+    </div>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div style="flex:1;min-width:240px">
+        <div class="ctrl"><label>적 거리</label><input type="range" id="dist2" min="0" max="14" step="0.5" value="6"><span class="val" id="dist2v">6</span></div>
+        <div class="ctrl"><label>체력</label><input type="range" id="hp2" min="0" max="100" step="5" value="80"><span class="val" id="hp2v">80</span></div>
+        <div class="row" style="margin:8px 0;gap:10px">
+          <button class="btn" id="tick2Btn">▶ tick 한 번</button>
+          <button class="btn" id="autoBtn">⏵ 연속 tick</button>
+          <span class="val" id="root2Status" style="min-width:auto"></span>
+        </div>
+        <div id="tick2Log" class="callout v" style="margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="chart-wrap" id="treeBoard2" style="margin-top:14px"></div>
+    <p class="note" style="margin-top:8px">→ 슬라이더를 움직이며 연속 tick을 보세요. <b>현재 상태를 기억하는 변수가 전혀 없어요</b> — 매번 0부터 트리를 훑어 지금 상황에 맞는 행동을 새로 고릅니다. 이 무상태 재평가가 BT의 <b>반응성</b>이에요.</p>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" data-panel="3">
+    <span class="kicker" style="color:var(--good)">Step 03 — Priority = Tree Order</span>
+    <h2>우선순위 = 트리 순서</h2>
+    <p class="lead">Selector는 <b>왼쪽 가지부터</b> 시도하므로, <b>도망을 맨 왼쪽에 두면 항상 최우선</b>이에요. 우선순위를 바꾸고 싶다면? <b>가지 순서만 바꾸면 끝</b>이에요. FSM에서 우선순위를 바꾸려면 관련 전이 화살표를 전부 다시 설계해야 했죠.</p>
+    <div class="row" style="gap:10px;margin:4px 0 14px">
+      <button class="btn" id="orderA">도망 ← 최우선 (기본)</button>
+      <button class="btn" id="orderB" style="border-color:var(--blue);color:var(--blue);background:rgba(96,165,250,.12)">공격 ← 최우선</button>
+    </div>
+    <div class="chart-wrap" id="treeBoard3"></div>
+    <div id="order3Info" class="callout" style="margin-top:6px"></div>
+
+    <h3 class="sub" style="margin-top:26px">03(FSM) ↔ 12(BT) 대조</h3>
+    <table class="calc">
+      <thead>
+        <tr><th style="text-align:left">관점</th><th style="text-align:left">03 · FSM</th><th style="text-align:left">12 · BT</th></tr>
+      </thead>
+      <tbody id="cmpTable"></tbody>
+    </table>
+    <div class="callout" style="margin-top:18px">
+      <div class="ttl" style="color:var(--hot)">13장 예고 — FSM vs BT, 언제 무엇을?</div>
+      <p style="margin:0">BT가 항상 정답은 아니에요. 상태가 적고 전이가 명확하면 FSM이 더 직관적이죠. <b>13장</b>에서 두 방식을 나란히 놓고 <b>확장성·가독성·반응성</b>을 기준으로 언제 무엇을 고를지 정리해요.</p>
+    </div>
+  </section>
+
+  <p class="foot">// tick 평가는 실제 BT 로직(단축평가)으로 동작합니다. · 03의 decideState 와 동일한 결정 · <a href="index.html">목차</a></p>
+</div>
+
+<script src="shared/lib.js"></script>
+<script>
+VZ.mountTopnav('#topnav', '12 · BT NPC');
+VZ.setupStepper();
+const BT = VZ.BT;
+
+// ---- blackboard 조건 (03의 decideState 와 동일한 임계값) ----
+// 체력≤25 도망 / 거리≤3 공격 / 3<거리≤8 추격 / 그 외 순찰
+const lowHp     = bb => bb.hp <= 25 ? 'success' : 'failure';
+const enemyNear = bb => bb.dist <= 3 ? 'success' : 'failure';
+const enemySeen = bb => bb.dist <= 8 ? 'success' : 'failure';
+
+// 우선순위 Selector 트리 빌더.
+// order: 'flee'(기본) 또는 'attack'(공격 최우선) — 가지 순서만 바꿔 우선순위 변경 시연.
+function buildTree(order){
+  const fleeBranch = { id:'seqFlee', type:'sequence', name:'위급',
+    children:[
+      { id:'cLow',  type:'condition', name:'체력 낮음?', fn:lowHp },
+      { id:'aFlee', type:'action',    name:'도망', fn:()=>'success' },
+    ]};
+  const attackBranch = { id:'seqAtk', type:'sequence', name:'근접전',
+    children:[
+      { id:'cNear',  type:'condition', name:'적 가까움?', fn:enemyNear },
+      { id:'aAttack', type:'action',   name:'공격', fn:()=>'success' },
+    ]};
+  const chaseBranch = { id:'seqChase', type:'sequence', name:'추격전',
+    children:[
+      { id:'cSeen',  type:'condition', name:'적 보임?', fn:enemySeen },
+      { id:'aChase', type:'action',    name:'추격', fn:()=>'success' },
+    ]};
+  const patrol = { id:'aPatrol', type:'action', name:'순찰', fn:()=>'success' };
+
+  const children = (order === 'attack')
+    ? [attackBranch, fleeBranch, chaseBranch, patrol]   // 공격을 왼쪽 끝으로
+    : [fleeBranch, attackBranch, chaseBranch, patrol];  // 기본: 도망 최우선
+
+  return { id:'root', type:'selector', name:'행동선택', children };
+}
+
+// tick 결과 → 실제로 선택된 '행동' 식별 (success 로 끝난 action 잎)
+const ACTION_LABEL = { aFlee:'도망', aAttack:'공격', aChase:'추격', aPatrol:'순찰' };
+// 행동 라벨 색 — status 4색(good/k/hot/회색)과 겹치지 않는 팔레트로(범례 혼동 방지). 09장과 통일.
+const ACTION_COLOR = { 도망:'var(--pink)', 공격:'var(--blue)', 추격:'var(--v)', 순찰:'var(--slate)' };
+function chosenAction(visited){
+  const hit = visited.find(v => ACTION_LABEL[v.id] && v.status === 'success');
+  return hit ? ACTION_LABEL[hit.id] : '—';
+}
+
+const NAME_OF = {
+  root:'루트(?)', seqFlee:'위급(→)', cLow:'체력 낮음?', aFlee:'도망',
+  seqAtk:'근접전(→)', cNear:'적 가까움?', aAttack:'공격',
+  seqChase:'추격전(→)', cSeen:'적 보임?', aChase:'추격', aPatrol:'순찰',
+};
+
+// ---------- STEP 0 : 구조만 ----------
+(function(){
+  document.getElementById('treeBoard0').innerHTML = BT.draw(buildTree('flee'), {}, {W:920});
+})();
+
+// ---------- 공통: tick + 점등 애니메이션 ----------
+function animateTick(boardId, dist, hp, opts){
+  const tree = buildTree('flee');
+  const { status, visited } = BT.tick(tree, { dist, hp });
+  const statusMap = {};
+  VZ.stepLight(visited, v => {
+    statusMap[v.id] = v.status;
+    document.getElementById(boardId).innerHTML = BT.draw(buildTree('flee'), statusMap, {W:920});
+  }, opts.delay || 360);
+  return { status, visited, action: chosenAction(visited) };
+}
+
+// ---------- STEP 1 : 상황 → tick → 행동 ----------
+(function(){
+  const distI = document.getElementById('dist1'), hpI = document.getElementById('hp1');
+  function renderStatic(){
+    document.getElementById('treeBoard1').innerHTML = BT.draw(buildTree('flee'), {}, {W:920});
+  }
+  function sync(){
+    document.getElementById('dist1v').textContent = +distI.value;
+    document.getElementById('hp1v').textContent = +hpI.value;
+  }
+  distI.addEventListener('input', ()=>{ sync(); renderStatic();
+    document.getElementById('tickLog').innerHTML=''; document.getElementById('rootStatus').textContent=''; });
+  hpI.addEventListener('input', ()=>{ sync(); renderStatic();
+    document.getElementById('tickLog').innerHTML=''; document.getElementById('rootStatus').textContent=''; });
+
+  document.getElementById('tickBtn').onclick = ()=>{
+    const dist = +distI.value, hp = +hpI.value;
+    const { visited, action } = animateTick('treeBoard1', dist, hp, {delay:360});
+    const col = ACTION_COLOR[action] || 'var(--ink)';
+    document.getElementById('rootStatus').innerHTML = `선택된 행동 = <b style="color:${col}">${action}</b>`;
+    document.getElementById('tickLog').innerHTML =
+      `<div class="ttl">평가 순서 (단축평가)</div>` +
+      visited.map(v=>`<span class="mono" style="color:${v.status==='success'?'var(--good)':v.status==='failure'?'var(--k)':'var(--hot)'}">${NAME_OF[v.id]||v.id} → ${v.status}</span>`).join('<br>') +
+      `<p class="note" style="margin:8px 0 0">거리 ${dist}, 체력 ${hp} → <b style="color:${col}">${action}</b>. 03의 FSM도 같은 입력에서 같은 상태를 골라요(거리·체력 임계값이 동일).</p>`;
+  };
+  sync(); renderStatic();
+})();
+
+// ---------- STEP 2 : 반응성 (연속 tick) ----------
+(function(){
+  const distI = document.getElementById('dist2'), hpI = document.getElementById('hp2');
+  let timer = null;
+  function sync(){
+    document.getElementById('dist2v').textContent = +distI.value;
+    document.getElementById('hp2v').textContent = +hpI.value;
+  }
+  function doTick(){
+    const dist = +distI.value, hp = +hpI.value;
+    // 연속 tick 중에는 즉시 렌더(애니메이션 없이) — 변화 반응을 빠르게 보이기
+    const tree = buildTree('flee');
+    const { visited } = BT.tick(tree, { dist, hp });
+    const map = {}; visited.forEach(v=>map[v.id]=v.status);
+    document.getElementById('treeBoard2').innerHTML = BT.draw(tree, map, {W:920});
+    const action = chosenAction(visited);
+    const col = ACTION_COLOR[action] || 'var(--ink)';
+    document.getElementById('root2Status').innerHTML = `행동 = <b style="color:${col}">${action}</b>`;
+    document.getElementById('tick2Log').innerHTML =
+      `<div class="ttl">매 tick 루트부터 재평가</div>` +
+      `<p style="margin:0">거리 ${dist}, 체력 ${hp} → <b style="color:${col}">${action}</b>. ` +
+      (hp<=25 ? '체력이 25 이하로 떨어지자 <b style="color:var(--good)">도망 가지</b>가 먼저 성공 → 다른 가지는 평가조차 안 돼요. 명시적 전이 없이 즉시 전환!' :
+       '체력이 충분해 도망 가지는 실패하고, 거리에 따라 공격/추격/순찰이 골라져요.') + `</p>`;
+  }
+  function animatedTick(){
+    const dist = +distI.value, hp = +hpI.value;
+    const { action } = animateTick('treeBoard2', dist, hp, {delay:300});
+    const col = ACTION_COLOR[action] || 'var(--ink)';
+    document.getElementById('root2Status').innerHTML = `행동 = <b style="color:${col}">${action}</b>`;
+  }
+  distI.addEventListener('input', ()=>{ sync(); if(timer) doTick(); });
+  hpI.addEventListener('input', ()=>{ sync(); if(timer) doTick(); });
+
+  document.getElementById('tick2Btn').onclick = ()=>{ if(timer){ clearInterval(timer); timer=null; document.getElementById('autoBtn').textContent='⏵ 연속 tick'; } animatedTick(); };
+  const autoBtn = document.getElementById('autoBtn');
+  autoBtn.onclick = ()=>{
+    if(timer){ clearInterval(timer); timer=null; autoBtn.textContent='⏵ 연속 tick'; autoBtn.style.background='rgba(55,189,248,.12)'; }
+    else { doTick(); timer=setInterval(doTick, 700); autoBtn.textContent='⏸ 정지'; autoBtn.style.background='rgba(251,191,36,.18)'; }
+  };
+  sync();
+  document.getElementById('treeBoard2').innerHTML = BT.draw(buildTree('flee'), {}, {W:920});
+})();
+
+// ---------- STEP 3 : 우선순위 = 트리 순서 ----------
+(function(){
+  // 같은 상황(거리 2, 체력 10) — 둘 다 조건 충족 → 순서가 결과를 가른다
+  const SCN = { dist:2, hp:10 };
+  function render(order){
+    const tree = buildTree(order);
+    const { visited } = BT.tick(tree, SCN);
+    const map = {}; visited.forEach(v=>map[v.id]=v.status);
+    document.getElementById('treeBoard3').innerHTML = BT.draw(tree, map, {W:920});
+    const action = chosenAction(visited);
+    const col = ACTION_COLOR[action] || 'var(--ink)';
+    const info = (order==='flee')
+      ? `<div class="ttl" style="color:var(--good)">도망이 맨 왼쪽 → 결과: <span style="color:${col}">${action}</span></div><p style="margin:0">거리 2(가까움)·체력 10(위험) — <b>둘 다 충족</b>이지만 도망 가지가 먼저라 <b>도망</b>이 이겨요. 위급 상황에서 무리하게 싸우지 않죠.</p>`
+      : `<div class="ttl" style="color:var(--k)">공격이 맨 왼쪽 → 결과: <span style="color:${col}">${action}</span></div><p style="margin:0">같은 상황인데 가지 순서만 바꿨더니 <b>공격</b>이 이겨요. 체력이 위험해도 코앞의 적을 먼저 친다 — <b>가지 순서 = 우선순위</b> 라는 증거예요.</p>`;
+    document.getElementById('order3Info').innerHTML = info;
+  }
+  document.getElementById('orderA').onclick = ()=>render('flee');
+  document.getElementById('orderB').onclick = ()=>render('attack');
+  render('flee');
+
+  // 대조 표
+  const rows = [
+    ['행동 표현',   '상태(원) 4개', '잎(행동) 4개 + 조건'],
+    ['우선순위',    '전이 화살표 설계', '가지의 왼→오 순서'],
+    ['우선순위 변경', '관련 전이 모두 재설계', '가지 순서만 바꾸면 끝'],
+    ['반응(체력↓)', '명시적 전이 필요(N개)', '매 tick 자동 재평가'],
+    ['확장 비용',   '전이 최대 N×(N−1) ≈ N²', '가지 한 개 추가'],
+    ['현재 상태',   '변수로 기억(stateful)', '없음 — 매번 재계산(stateless)'],
+  ];
+  document.getElementById('cmpTable').innerHTML = rows.map(r=>
+    `<tr><td style="text-align:left">${r[0]}</td><td style="text-align:left;color:var(--muted)">${r[1]}</td><td style="text-align:left;color:var(--good)">${r[2]}</td></tr>`
+  ).join('');
+})();
+</script>
+</body>
+</html>

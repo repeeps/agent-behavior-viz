@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>06 FSM의 한계 · 행동 설계, 눈으로 보기</title>
+<link rel="stylesheet" href="shared/theme.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topnav" id="topnav"></div>
+
+  <header>
+    <div class="tag">PART 1 · FINITE STATE MACHINE</div>
+    <h1>FSM의 한계 — 전이 폭발</h1>
+    <p class="intro">FSM은 단순할 땐 명쾌해요. 하지만 상태가 늘어나면 전이(화살표)가 <b>제곱으로 폭발</b>하고, 전역 이벤트가 모든 상태를 오염시키며, 한 덩어리를 다른 곳에 <b>떼어 쓰기</b>도 어렵죠. 이 한계들이 바로 <b>Behavior Tree(PART 2)</b>로 넘어가는 다리예요. 직접 슬라이더를 움직여 폭발을 눈으로 봅시다.</p>
+  </header>
+
+  <nav class="stepper" id="stepper">
+    <button data-s="0" class="active">00 · 전이 폭발</button>
+    <button data-s="1">01 · 전역 이벤트</button>
+    <button data-s="2">02 · 재사용 불가</button>
+    <button data-s="3">03 · 그래서 BT</button>
+  </nav>
+
+  <!-- STEP 0 -->
+  <section class="panel show" data-panel="0">
+    <span class="kicker" style="color:var(--hot)">Step 00 — Transition Explosion</span>
+    <h2>상태가 늘면 전이가 폭발한다</h2>
+    <p class="lead">"모든 상태에서 모든 상태로 갈 수 있다"면, 상태 수 <b>N</b>에 대해 전이 수는 <b>N×(N−1)</b>이에요. 각 상태가 자기 자신을 뺀 나머지 <b>N−1</b>개로 가는 화살표를 갖기 때문이죠. 슬라이더로 N을 키워 보세요 — 화살표가 순식간에 빽빽해져요.</p>
+    <div class="ctrl">
+      <label>상태 수 N</label>
+      <input type="range" id="nSlider" min="2" max="8" step="1" value="4">
+      <span class="val" id="nVal">4</span>
+    </div>
+    <div class="formula" style="margin:8px 0 4px">전이 수 = N × (N − 1) = <span id="formulaCalc" class="mono"></span></div>
+    <div id="explodeBars" style="margin:18px 0 6px"></div>
+    <div class="chart-wrap" id="explodeGraph"></div>
+    <p class="note" style="margin-top:14px">→ N=2면 전이 <b>2개</b>지만, N=8이면 <b id="bigN"></b>개예요. 상태를 2배로 늘리면 전이는 약 <b>4배</b>로 늘죠(제곱 증가). 사람이 손으로 관리할 수 있는 수준을 금방 넘어섭니다.</p>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="panel" data-panel="1">
+    <span class="kicker" style="color:var(--q)">Step 01 — Global Event Nightmare</span>
+    <h2>전역 이벤트의 악몽</h2>
+    <p class="lead">"<b>어디서든</b> 사망하면 → 리스폰" 같은 <b>전역 전이</b>를 떠올려 보세요. FSM엔 "모든 상태"라는 개념이 없어서, <b>상태 하나하나마다</b> 똑같은 화살표를 <b>일일이</b> 그어줘야 해요. 전역 이벤트 1개를 추가할 때마다 전이가 <b>N개씩</b> 더 늘어납니다.</p>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div class="chart-wrap" id="globalGraph" style="flex:0 0 auto"></div>
+      <div style="flex:1;min-width:220px">
+        <div class="row" style="gap:8px;margin-bottom:12px">
+          <button class="btn" id="addGlobal">＋ 전역 이벤트 추가</button>
+          <button class="btn" id="resetGlobal">↺ 초기화</button>
+        </div>
+        <div id="globalInfo" class="callout q"></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px">→ 기본 전이(파랑) 위에 전역 이벤트(노랑)가 모든 상태에 하나씩 달라붙어요. 전역 이벤트 <b>G</b>개면 전이가 <b>N×G</b>개 추가됩니다. 하나만 빠뜨려도 "거기선 죽어도 리스폰이 안 되는" 버그가 생기죠.</p>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" data-panel="2">
+    <span class="kicker" style="color:var(--v)">Step 02 — No Reuse</span>
+    <h2>재사용이 안 된다</h2>
+    <p class="lead">FSM의 전이는 <b>특정 상태에 묶여</b> 있어요. "전투 행동" 한 덩어리를 다른 캐릭터·다른 맥락에 떼어 쓰려 해도, 그 전이들이 원래 상태 이름을 가리키고 있어서 <b>그대로 복사하면 깨집니다</b>. 모듈성이 없는 거죠.</p>
+    <div class="grid3">
+      <div class="card"><span class="tagchip k">묶임 Coupling</span><h4 style="margin-top:8px">전이 = 상태쌍</h4><p class="note">전이는 항상 <b>(from, to)</b> 상태 쌍에 묶여요. 상태를 옮기면 모든 화살표를 다시 이어야 해요.</p></div>
+      <div class="card"><span class="tagchip q">복붙 실패</span><h4 style="margin-top:8px">떼면 깨진다</h4><p class="note">"전투" 부분만 복사해도, 가리키던 <b>idle·flee</b> 같은 외부 상태가 없으면 무효 전이가 돼요.</p></div>
+      <div class="card"><span class="tagchip v">계층 없음</span><h4 style="margin-top:8px">평평한 그래프</h4><p class="note">FSM은 <b>한 장의 평면 그래프</b>예요. "이 묶음을 하나의 부품으로" 다룰 단위가 없죠.</p></div>
+    </div>
+    <div class="callout v" style="margin-top:18px">
+      <div class="ttl">한눈에</div>
+      <p style="margin:0">상태 5개짜리 "전투 FSM"을 새 프로젝트에 붙이려면 → 전이가 가리키는 외부 상태를 다 찾아 다시 연결하고, 전역 이벤트도 새 상태마다 다시 그어야 해요. <b>떼어 쓰는 게 새로 만드는 것만큼 힘들다</b>면, 그건 모듈이 아니에요.</p>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" data-panel="3">
+    <span class="kicker" style="color:var(--good)">Step 03 — Enter Behavior Tree</span>
+    <h2>그래서, Behavior Tree</h2>
+    <p class="lead">Behavior Tree(BT)는 행동을 <b>트리(나무)</b>로 표현해요. 가지(subtree)를 통째로 <b>떼어 재사용</b>하고, 우선순위·반응성을 구조 자체로 표현하죠. FSM이 막혔던 지점들을 BT가 어떻게 푸는지 미리 봅시다 — 자세한 건 PART 2(07~)에서.</p>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div class="chart-wrap" id="btPreview" style="flex:0 0 auto"></div>
+      <div style="flex:1;min-width:220px">
+        <p class="note" style="margin:0 0 8px">→ 위는 같은 "도망 우선, 아니면 순찰" 로직을 BT로 그린 모습이에요. <b>?</b>(Selector)가 왼쪽부터 시도해 우선순위를 표현하고, 각 가지는 <b>독립 부품</b>이라 다른 트리에 그대로 끼워 넣을 수 있어요.</p>
+      </div>
+    </div>
+    <table class="calc" style="margin-top:20px">
+      <thead><tr><th>FSM의 약점</th><th style="text-align:left">BT의 해법</th></tr></thead>
+      <tbody>
+        <tr><td style="text-align:left">전이 폭발 (N×(N−1))</td><td style="text-align:left">전이 자체가 없음 — 매 틱 루트부터 평가, 노드 수만큼만 자람</td></tr>
+        <tr><td style="text-align:left">전역 이벤트를 상태마다 복제</td><td style="text-align:left">우선순위 가지를 <b>위쪽에 한 번</b>만 두면 항상 먼저 검사됨</td></tr>
+        <tr><td style="text-align:left">재사용 불가 (상태에 묶임)</td><td style="text-align:left">서브트리를 <b>통째로 떼어</b> 다른 트리에 끼움 (모듈성)</td></tr>
+        <tr><td style="text-align:left">평평한 그래프, 계층 없음</td><td style="text-align:left">트리 = <b>계층 구조</b>. 복잡함을 가지로 캡슐화</td></tr>
+        <tr class="win"><td style="text-align:left">반응성 표현이 어색</td><td style="text-align:left">매 틱 재평가 → <b>상황 변화에 자동 반응</b></td></tr>
+      </tbody>
+    </table>
+    <div class="callout good" style="margin-top:18px">
+      <div class="ttl">다리를 건너며</div>
+      <p style="margin:0">FSM은 "지금 어느 상태인가"를 <b>기억</b>으로 들고 갔어요. BT는 "지금 무엇을 해야 하나"를 매 순간 <b>트리를 타고 내려가며 결정</b>해요. 같은 문제를 다른 각도로 푸는 거죠. <b>PART 2</b>에서 이 트리를 직접 틱(tick)시켜 봅니다.</p>
+    </div>
+  </section>
+
+  <p class="foot">// 전이 수는 N×(N−1)로 실제 계산됩니다. · <a href="index.html">목차</a></p>
+</div>
+
+<script src="shared/lib.js"></script>
+<script>
+VZ.mountTopnav('#topnav', '06 · FSM Limits');
+VZ.setupStepper();
+const SM = VZ.SM, BT = VZ.BT;
+
+// 완전연결 그래프용 상태 좌표를 원형 배치로 생성
+function ringStates(n, cx, cy, R){
+  const labels = ['A','B','C','D','E','F','G','H'];
+  const out = [];
+  for(let i=0;i<n;i++){
+    const ang = -Math.PI/2 + i * 2*Math.PI/n;
+    out.push({ id:'s'+i, label:labels[i], x:+(cx+R*Math.cos(ang)).toFixed(1), y:+(cy+R*Math.sin(ang)).toFixed(1) });
+  }
+  return out;
+}
+
+// ---------- STEP 0 : 전이 폭발 ----------
+(function(){
+  const slider = document.getElementById('nSlider');
+  const nVal = document.getElementById('nVal');
+  const formulaCalc = document.getElementById('formulaCalc');
+  const bars = document.getElementById('explodeBars');
+  const graph = document.getElementById('explodeGraph');
+  document.getElementById('bigN').textContent = 8*(8-1); // 56
+
+  // 모든 상태쌍 (i!=j) 전이 생성
+  function fullTransitions(states){
+    const t = [];
+    for(let i=0;i<states.length;i++)
+      for(let j=0;j<states.length;j++)
+        if(i!==j) t.push({ from:states[i].id, to:states[j].id, active:false });
+    return t;
+  }
+
+  function render(){
+    const n = +slider.value;
+    nVal.textContent = n;
+    const edges = n*(n-1);
+    formulaCalc.textContent = `${n} × ${n-1} = ${edges}`;
+
+    // 막대: N=2..8 의 전이 수를 비교, 현재 N 강조
+    const counts = [];
+    for(let k=2;k<=8;k++) counts.push({ n:k, e:k*(k-1) });
+    const maxE = 8*7;
+    bars.innerHTML = counts.map(c=>
+      VZ.barRow(`N=${c.n}`, c.e/maxE, {
+        win: c.n===n,
+        pctText: c.e + '개'
+      })
+    ).join('');
+
+    // 그래프: 작은 N은 깔끔, 큰 N은 빽빽해지는 걸 시연
+    const R = n<=4 ? 95 : (n<=6 ? 110 : 125);
+    const states = ringStates(n, 230, 175, R);
+    graph.innerHTML = SM.draw(states, fullTransitions(states), { W:460, H:350, r:24 });
+  }
+  slider.addEventListener('input', render);
+  render();
+})();
+
+// ---------- STEP 1 : 전역 이벤트 ----------
+(function(){
+  // 고정된 4-상태 FSM (선형 흐름) + 전역 이벤트 누적
+  const N = 4;
+  const states = [
+    {id:'s0', label:'정지', x:110, y:90},
+    {id:'s1', label:'순찰', x:340, y:90},
+    {id:'s2', label:'추격', x:340, y:250},
+    {id:'s3', label:'공격', x:110, y:250},
+  ];
+  // 기본 전이 (파랑 계열 = muted, 핫 아님)
+  const base = [
+    {from:'s0', to:'s1', active:false},
+    {from:'s1', to:'s2', active:false},
+    {from:'s2', to:'s3', active:false},
+    {from:'s3', to:'s0', active:false},
+  ];
+  // 전역 이벤트가 향하는 목적지 상태들 (예: 사망→리스폰=s0)
+  const globalEvents = [
+    { name:'사망→리스폰', to:'s0' },
+    { name:'기절→정지',   to:'s2' },
+    { name:'리셋→대기',   to:'s1' },
+  ];
+  let g = 0; // 추가된 전역 이벤트 수
+
+  const graph = document.getElementById('globalGraph');
+  const info = document.getElementById('globalInfo');
+
+  function buildGlobalTrans(){
+    const t = []; const seen = new Set();
+    base.forEach(b=>seen.add(b.from+'>'+b.to));   // 기본 전이와 겹치는 화살표는 그리지 않음
+    for(let gi=0; gi<g; gi++){
+      const ev = globalEvents[gi];
+      states.forEach(s=>{
+        if(s.id === ev.to) return;
+        const k = s.id+'>'+ev.to;
+        if(seen.has(k)) return;                   // 이미 그려진(겹치는) 전이 제외 → 화면 distinct = 카운트
+        seen.add(k); t.push({ from:s.id, to:ev.to, active:true, label:'' });
+      });
+    }
+    return t;
+  }
+
+  function render(){
+    // 전역 전이는 to 자기자신 제외 → 상태당 (to가 아닌 경우) 화살표.
+    // 한 전역 이벤트의 추가 전이 수 = N - 1 (목적지 상태에는 self가 되므로 생략)
+    const baseCount = base.length;        // 4
+    const gt = buildGlobalTrans();        // 실제 그려지는 전역 화살표(중복 제외)
+    const globalCount = gt.length;        // 화면 distinct = 이 수
+    const total = baseCount + globalCount;
+    graph.innerHTML = SM.draw(states, base.concat(gt), { W:470, H:340, r:30 });
+    info.innerHTML =
+      `<div class="ttl">전역 이벤트: ${g}개</div>
+       <p style="margin:0 0 6px">기본 전이 <b>${baseCount}</b>개 + 전역 전이 <b class="h">${globalCount}</b>개 = 총 <b class="h">${total}</b>개 <span style="color:var(--faint)">(화면 화살표 수와 일치)</span></p>
+       <p style="margin:0">전역 이벤트 1개당 화살표 <b>최대 ${N - 1}개</b>(모든 상태→목적지)가 새로 생겨요. 상태가 많아질수록 이 비용이 그대로 커집니다.</p>`;
+  }
+
+  document.getElementById('addGlobal').onclick = ()=>{ if(g<globalEvents.length){ g++; render(); } };
+  document.getElementById('resetGlobal').onclick = ()=>{ g=0; render(); };
+  render();
+})();
+
+// ---------- STEP 3 : BT 미리보기 ----------
+(function(){
+  const tree = {
+    id:'root', type:'selector', name:'행동 선택',
+    children:[
+      { id:'flee_seq', type:'sequence', name:'도망',
+        children:[
+          { id:'c_danger', type:'condition', name:'위험한가?' },
+          { id:'a_flee',   type:'action',    name:'도망친다' },
+        ]
+      },
+      { id:'a_patrol', type:'action', name:'순찰한다' },
+    ]
+  };
+  // 정적 미리보기: "위험함=success" 가정 → 도망 가지 채택
+  const statusMap = {
+    root:'success',
+    flee_seq:'success', c_danger:'success', a_flee:'success',
+    a_patrol:'idle',
+  };
+  document.getElementById('btPreview').innerHTML = BT.draw(tree, statusMap, { x0:60, hGap:110, vGap:78 });
+})();
+</script>
+</body>
+</html>

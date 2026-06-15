@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>10 Decorator · 행동 설계, 눈으로 보기</title>
+<link rel="stylesheet" href="shared/theme.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topnav" id="topnav"></div>
+
+  <header>
+    <div class="tag">PART 2 · BEHAVIOR TREE</div>
+    <h1>Decorator — 자식 하나를 감싸 변형한다</h1>
+    <p class="intro">데코레이터(Decorator)는 자식 노드가 <b>딱 하나</b>예요. 그 자식의 결과를 <b>반전</b>하거나, <b>반복</b>하거나, <b>조건을 걸어</b> 감싸요. 잎을 고치지 않고 행동만 바꿀 수 있어서 트리가 깔끔해져요. 화면엔 <b>! (Inverter)</b>, <b>↻ (Repeater)</b>로 표시됩니다.</p>
+  </header>
+
+  <nav class="stepper" id="stepper">
+    <button data-s="0" class="active">00 · 데코레이터란</button>
+    <button data-s="1">01 · Inverter (!)</button>
+    <button data-s="2">02 · Repeater (↻) / 기타</button>
+    <button data-s="3">03 · 왜 쓰나</button>
+  </nav>
+
+  <!-- STEP 0 -->
+  <section class="panel show" data-panel="0">
+    <span class="kicker" style="color:var(--hot)">Step 00 — What is a Decorator</span>
+    <h2>자식 하나를 감싸는 노드</h2>
+    <p class="lead">Sequence·Selector가 여러 자식을 가지는 것과 달리, 데코레이터는 자식이 <b>딱 하나</b>예요. 그 자식이 돌려준 결과를 <b>변형하거나(반전), 반복하거나, 조건을 걸어</b> 감싸요.</p>
+    <div class="chart-wrap" id="treeBoard0"></div>
+    <p class="note" style="margin-top:8px">→ <span class="mono" style="color:var(--hot)">!</span> 는 <b>Inverter</b>(결과 뒤집기), <span class="mono" style="color:var(--hot)">↻</span> 는 <b>Repeater</b>(반복). 데코레이터는 둥근 알약 모양이고, 자식은 <b>언제나 하나</b>예요. 각 동작은 다음 스텝에서 점등으로 확인해요.</p>
+    <div class="grid3" style="margin-top:16px">
+      <div class="card" style="border-color:rgba(251,191,36,.4)"><h4 style="color:var(--hot)">! Inverter</h4><p class="note">자식 결과를 <b>뒤집음</b>. Success ↔ Failure.</p></div>
+      <div class="card" style="border-color:rgba(251,191,36,.4)"><h4 style="color:var(--hot)">↻ Repeater</h4><p class="note">자식을 <b>반복</b> 실행(여기선 결과를 그대로 전달).</p></div>
+      <div class="card" style="border-color:rgba(55,189,248,.4)"><h4 style="color:var(--q)">+ 기타</h4><p class="note">Succeeder, Cooldown 등 결과·타이밍을 <b>조절</b>하는 변형들.</p></div>
+    </div>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="panel" data-panel="1">
+    <span class="kicker" style="color:var(--q)">Step 01 — Inverter (!)</span>
+    <h2>자식 결과를 뒤집는다</h2>
+    <p class="lead">Inverter는 자식이 <b>Success면 Failure</b>, <b>Failure면 Success</b>로 바꿔요(Running은 그대로). 그래서 "<b>적이 없나?</b>"는 곧 <b>Inverter(적이 있나?)</b>로 표현할 수 있어요. 조건을 따로 만들 필요가 없죠.</p>
+    <div class="ctrl" style="margin-bottom:6px">
+      <label>적이 있는가?</label>
+      <button class="btn" id="enemyToggle">적: 없다</button>
+    </div>
+    <div class="row" style="margin:8px 0"><button class="btn" id="tickBtn">▶ tick 실행</button><span class="val" id="invStatus" style="min-width:auto"></span></div>
+    <div class="chart-wrap" id="treeBoard1"></div>
+    <div id="invLog" class="callout q" style="margin-top:6px"></div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" data-panel="2">
+    <span class="kicker" style="color:var(--v)">Step 02 — Repeater &amp; Others</span>
+    <h2>반복하거나, 타이밍을 건다</h2>
+    <p class="lead"><b>Repeater(↻)</b>는 자식을 반복 실행해요(여기선 결과를 그대로 위로 전달). 그 밖에도 결과·타이밍을 손보는 데코레이터가 있어요.</p>
+    <div class="grid3" style="margin-bottom:6px">
+      <div class="card" style="border-color:rgba(192,132,252,.4)"><h4 style="color:var(--v)">↻ Repeater</h4><p class="note">자식을 N번 반복. 여기 엔진에선 자식 결과를 그대로 전달해요.</p></div>
+      <div class="card" style="border-color:rgba(52,211,153,.4)"><h4 style="color:var(--good)">✓ Succeeder</h4><p class="note">자식이 뭘 돌려주든 <b>항상 Success</b>. 실패해도 트리를 계속 진행시킬 때.</p></div>
+      <div class="card" style="border-color:rgba(251,191,36,.4)"><h4 style="color:var(--hot)">⏱ Cooldown</h4><p class="note">한 번 성공하면 일정 tick 동안 <b>Failure</b>를 돌려 다시 못 쓰게 막아요(연사 방지).</p></div>
+    </div>
+
+    <div class="callout v" style="margin-top:16px">
+      <div class="ttl">Cooldown 시연 — 연사 방지</div>
+      <p style="margin:0 0 12px">아래는 <b>Cooldown(3 tick)</b>으로 "공격"을 감싼 트리예요. <b>▶ tick</b>을 눌러보세요. 첫 tick은 <b style="color:var(--good)">Success</b>(공격), 이후 <b>3 tick 동안</b>은 쿨다운이라 <b style="color:var(--k)">Failure</b>, 그다음 다시 Success가 돼요. 카운터는 blackboard에 저장됩니다.</p>
+    </div>
+    <div class="row" style="margin:8px 0">
+      <button class="btn" id="cdTickBtn">▶ tick 실행</button>
+      <button class="btn" id="cdResetBtn" style="border-color:var(--muted);background:rgba(138,149,173,.12);color:var(--muted)">초기화</button>
+      <span class="val" id="cdStatus" style="min-width:auto"></span>
+    </div>
+    <div class="chart-wrap" id="treeBoard2"></div>
+    <div id="cdLog" class="callout" style="margin-top:6px"></div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" data-panel="3">
+    <span class="kicker" style="color:var(--good)">Step 03 — Why Use Them</span>
+    <h2>잎을 고치지 않고 행동을 조절한다</h2>
+    <p class="lead">데코레이터의 핵심은 <b>모듈성</b>이에요. 잎(조건·행동)은 그대로 두고, 그 위에 데코레이터만 씌워서 <b>반전·반복·게이트</b>를 거는 거죠.</p>
+    <div class="grid3">
+      <div class="card" style="border-color:rgba(251,191,36,.4)"><h4 style="color:var(--hot)">반전</h4><p class="note">"적이 있나?" 조건 하나로 <b>!Inverter</b>를 씌우면 "적이 없나?"가 돼요. 조건을 두 번 만들 필요 없음.</p></div>
+      <div class="card" style="border-color:rgba(192,132,252,.4)"><h4 style="color:var(--v)">반복</h4><p class="note">같은 행동을 <b>↻Repeater</b>로 여러 번 시도. 한 번 실패해도 재시도 로직을 잎에 안 넣어도 돼요.</p></div>
+      <div class="card" style="border-color:rgba(52,211,153,.4)"><h4 style="color:var(--good)">게이트</h4><p class="note">같은 "공격" 행동에 <b>⏱Cooldown</b>을 씌워 <b>연사 방지</b>. 행동 코드는 손대지 않음.</p></div>
+    </div>
+    <div class="callout good" style="margin-top:18px">
+      <div class="ttl">한 줄 정리</div>
+      <p style="margin:0">잎은 <b>"무엇을 하는가"</b>에만 집중하고, 데코레이터가 <b>"언제·얼마나·반대로"</b>를 책임져요. 덕분에 같은 잎을 여러 맥락에서 재사용할 수 있어요.</p>
+    </div>
+  </section>
+
+  <p class="foot">// tick 평가는 실제 BT 로직(Inverter 반전·Cooldown 카운터)으로 동작합니다. · <a href="index.html">목차</a></p>
+</div>
+
+<script src="shared/lib.js"></script>
+<script>
+VZ.mountTopnav('#topnav', '10 · Decorator');
+VZ.setupStepper();
+const BT = VZ.BT;
+
+// ---------- STEP 0 : 구조만 ----------
+(function(){
+  const tree = {
+    id:'root', type:'selector', name:'행동선택',
+    children:[
+      { id:'inv', type:'inverter', name:'적이 없나?',
+        children:[ { id:'c0', type:'condition', name:'적이 있나?', fn:()=>'failure' } ] },
+      { id:'rep', type:'repeater', name:'순찰 반복',
+        children:[ { id:'a0', type:'action', name:'순찰', fn:()=>'success' } ] },
+    ]
+  };
+  document.getElementById('treeBoard0').innerHTML = BT.draw(tree, {}, {W:560});
+})();
+
+// ---------- STEP 1 : Inverter 반전 ----------
+(function(){
+  let enemyExists = false;
+  function buildTree(){
+    return {
+      id:'inv', type:'inverter', name:'적이 없나?',
+      children:[
+        { id:'cond', type:'condition', name:'적이 있나?', fn:bb=>bb.enemyExists?'success':'failure' },
+      ]
+    };
+  }
+  const tog = document.getElementById('enemyToggle');
+  function render(statusMap){
+    document.getElementById('treeBoard1').innerHTML = BT.draw(buildTree(), statusMap||{}, {W:520});
+  }
+  tog.onclick = ()=>{
+    enemyExists=!enemyExists;
+    tog.textContent = enemyExists?'적: 있다':'적: 없다';
+    tog.style.borderColor = enemyExists?'var(--k)':'var(--q)';
+    render({}); document.getElementById('invLog').innerHTML=''; document.getElementById('invStatus').textContent='';
+  };
+  document.getElementById('tickBtn').onclick = ()=>{
+    const tree = buildTree();
+    const {status, visited} = BT.tick(tree, {enemyExists});
+    const statusMap={};
+    VZ.stepLight(visited, v=>{ statusMap[v.id]=v.status; render(statusMap); }, 460);
+    const childSt = visited.find(v=>v.id==='cond').status;
+    const colOf = s => s==='success'?'var(--good)':s==='failure'?'var(--k)':'var(--hot)';
+    document.getElementById('invStatus').innerHTML = `Inverter = <b style="color:${colOf(status)}">${status}</b>`;
+    document.getElementById('invLog').innerHTML =
+      `<div class="ttl">반전 확인</div>` +
+      `<span class="mono">자식 "적이 있나?" → <b style="color:${colOf(childSt)}">${childSt}</b></span><br>` +
+      `<span class="mono">Inverter(!) 뒤집음 → <b style="color:${colOf(status)}">${status}</b></span>` +
+      `<p class="note" style="margin:8px 0 0">${enemyExists
+        ? '적이 있어 조건은 Success. Inverter가 뒤집어 <b>Failure</b> — "적이 없나?"는 거짓이에요.'
+        : '적이 없어 조건은 Failure. Inverter가 뒤집어 <b>Success</b> — "적이 없나?"는 참이에요.'}</p>`;
+  };
+  render({});
+})();
+
+// ---------- STEP 2 : Cooldown 시연 ----------
+(function(){
+  const COOLDOWN = 3;            // 성공 후 막는 tick 수
+  const bb = { cdRemaining:0, lastTick:0 };
+  // Cooldown 데코레이터: 잎(공격)을 fn으로 감싸 카운터 게이트 구현
+  function buildTree(){
+    return {
+      id:'cd', type:'repeater', name:'⏱ Cooldown(3)',
+      children:[
+        { id:'atk', type:'action', name:'공격', fn:b=>{
+            if(b.cdRemaining>0){ b.cdRemaining--; b.lastTick='blocked'; return 'failure'; }
+            b.cdRemaining = COOLDOWN; b.lastTick='fired'; return 'success';
+        } },
+      ]
+    };
+  }
+  let tickNo = 0;
+  function render(statusMap){
+    document.getElementById('treeBoard2').innerHTML = BT.draw(buildTree(), statusMap||{}, {W:480});
+  }
+  function reset(){
+    bb.cdRemaining=0; bb.lastTick=0; tickNo=0;
+    render({}); document.getElementById('cdLog').innerHTML=''; document.getElementById('cdStatus').textContent='';
+  }
+  document.getElementById('cdResetBtn').onclick = reset;
+  document.getElementById('cdTickBtn').onclick = ()=>{
+    tickNo++;
+    const tree = buildTree();
+    const {status, visited} = BT.tick(tree, bb);
+    const statusMap={}; visited.forEach(v=>statusMap[v.id]=v.status);
+    render(statusMap);
+    const colOf = s => s==='success'?'var(--good)':'var(--k)';
+    document.getElementById('cdStatus').innerHTML = `tick #${tickNo} → <b style="color:${colOf(status)}">${status}</b>`;
+    const fired = bb.lastTick==='fired';
+    document.getElementById('cdLog').className = 'callout ' + (fired?'good':'');
+    document.getElementById('cdLog').innerHTML =
+      `<div class="ttl" style="color:${fired?'var(--good)':'var(--k)'}">tick #${tickNo} — ${fired?'공격 발동 🔥':'쿨다운 중 ⏱'}</div>` +
+      `<p style="margin:0">${fired
+        ? '쿨다운이 풀려 <b style="color:var(--good)">공격 성공</b>. 이제 다시 '+COOLDOWN+' tick 동안 막혀요.'
+        : '아직 쿨다운 중이라 <b style="color:var(--k)">Failure</b>. 다음 발동까지 <b>'+(bb.cdRemaining+1)+' tick</b> 남았어요.'}</p>`;
+  };
+  render({});
+})();
+</script>
+</body>
+</html>

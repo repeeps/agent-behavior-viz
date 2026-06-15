@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>09 Selector · 행동 설계, 눈으로 보기</title>
+<link rel="stylesheet" href="shared/theme.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topnav" id="topnav"></div>
+
+  <header>
+    <div class="tag">PART 2 · BEHAVIOR TREE</div>
+    <h1>Selector — 하나만 성공하면 끝</h1>
+    <p class="intro">Selector(셀렉터, 또는 <b>Fallback</b>)는 자식을 <b>왼쪽→오른쪽</b> 순서로 시도해요. <b>하나라도 Success</b>면 거기서 즉시 멈추고 Success, 전부 Failure면 Failure를 돌려줘요. Sequence가 <b>AND</b>라면 Selector는 <b>OR</b>예요. 왼쪽일수록 우선순위가 높죠.</p>
+  </header>
+
+  <nav class="stepper" id="stepper">
+    <button data-s="0" class="active">00 · ?는 OR</button>
+    <button data-s="1">01 · 위협 대응 우선순위</button>
+    <button data-s="2">02 · 왜 fallback인가</button>
+    <button data-s="3">03 · Sequence와 짝</button>
+  </nav>
+
+  <!-- STEP 0 -->
+  <section class="panel show" data-panel="0">
+    <span class="kicker" style="color:var(--hot)">Step 00 — Selector is OR</span>
+    <h2><span class="mono" style="color:var(--q)">?</span> 는 OR(우선순위)</h2>
+    <p class="lead">Selector는 자식을 <b>왼쪽부터</b> 차례로 시도해요. <b>처음으로 성공한 가지</b>에서 멈추고 Success를 위로 돌려주죠. 모두 실패해야만 Selector가 Failure예요. "이게 안 되면 저거, 저것도 안 되면 그 다음"의 <b>차선책 사슬</b>이에요.</p>
+    <div class="chart-wrap" id="treeBoard0"></div>
+    <div class="callout q" style="margin-top:18px">
+      <div class="ttl">단축평가 규칙 (OR)</div>
+      <p style="margin:0 0 8px">왼→오로 보다가 <b style="color:var(--good)">첫 Success</b>를 만나면 <b>즉시 멈춤</b> → 그 뒤 가지는 평가조차 안 해요.</p>
+      <p style="margin:0"><code>success || success || ...</code> 처럼 — 하나라도 참이면 전체 참. 왼쪽일수록 <b>높은 우선순위</b>.</p>
+    </div>
+    <p class="note" style="margin-top:6px">→ Sequence(<span class="mono" style="color:var(--hot)">→</span>, AND)와 정확히 거울상이에요. Sequence는 첫 <b>실패</b>에서 멈추고, Selector는 첫 <b>성공</b>에서 멈춰요.</p>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="panel" data-panel="1">
+    <span class="kicker" style="color:var(--q)">Step 01 — Threat Priority</span>
+    <h2>위협 대응 우선순위</h2>
+    <p class="lead">NPC가 <b>?</b> 아래 세 가지를 우선순위 순으로 시도해요: <b style="color:var(--pink)">도망</b>(체력 낮을 때) → <b style="color:var(--blue)">공격</b>(적이 가까울 때) → <b style="color:var(--slate)">순찰</b>(항상 성공). 아래 토글로 상황(blackboard)을 바꾸고 <b>▶ tick</b>을 눌러보세요. <b>첫 성공 가지</b>에서 멈춰요.</p>
+    <div class="ctrl" style="margin-bottom:4px">
+      <label>체력이 낮은가?</label>
+      <button class="btn" id="hpToggle">체력: 충분</button>
+    </div>
+    <div class="ctrl" style="margin-bottom:6px">
+      <label>적이 가까운가?</label>
+      <button class="btn" id="enemyToggle">적: 멀다</button>
+    </div>
+    <div class="row" style="margin:8px 0"><button class="btn" id="tickBtn">▶ tick 실행</button><span class="val" id="rootStatus" style="min-width:auto"></span></div>
+    <div class="chart-wrap" id="treeBoard1"></div>
+    <div id="tickLog" class="callout v" style="margin-top:6px"></div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" data-panel="2">
+    <span class="kicker" style="color:var(--v)">Step 02 — Why Fallback</span>
+    <h2>왜 fallback(차선책)인가</h2>
+    <p class="lead">앞쪽 선택지가 <b>전부 실패</b>해야만 마지막 <b>기본 행동</b>에 도달해요. 즉 "<b>더 중요한 것부터 시도하고, 안 되면 차선</b>". 맨 오른쪽 순찰은 항상 성공이라 다른 게 다 안 될 때의 <b>안전망(default)</b>이 돼요.</p>
+    <p class="sub" style="margin-top:18px">토글 조합 → 선택되는 가지</p>
+    <div class="chart-wrap" style="overflow-x:auto"><table class="calc" id="comboTable"></table></div>
+    <div class="callout good" style="margin-top:18px">
+      <div class="ttl">핵심</div>
+      <p style="margin:0">우선순위가 높은 가지(왼쪽)가 성공하면 낮은 가지는 <b>아예 실행 안 됨</b>. 그래서 "도망 &gt; 공격 &gt; 순찰" 순서가 곧 행동의 <b>우선순위 정책</b>이 돼요. 순서만 바꿔도 NPC 성격이 달라지죠.</p>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" data-panel="3">
+    <span class="kicker" style="color:var(--good)">Step 03 — Pairing with Sequence</span>
+    <h2>Sequence와 짝 — BT의 뼈대</h2>
+    <p class="lead">표준 패턴은 <b>Selector 안에 Sequence</b>를 넣는 거예요. 각 Sequence는 "<b style="color:var(--q)">조건</b> 맞으면 그 <b>행동</b>"이고, Selector가 그 중 <b>먼저 맞는 것</b>을 골라요. <b>08 Sequence + 09 Selector</b> 조합 = 행동 트리의 뼈대죠.</p>
+    <div class="ctrl" style="margin-bottom:4px">
+      <label>배고픈가?</label>
+      <button class="btn" id="hungryToggle">배고픔: 아니오</button>
+    </div>
+    <div class="ctrl" style="margin-bottom:6px">
+      <label>졸린가?</label>
+      <button class="btn" id="sleepyToggle">졸림: 아니오</button>
+    </div>
+    <div class="row" style="margin:8px 0"><button class="btn" id="tickBtn3">▶ tick 실행</button><span class="val" id="rootStatus3" style="min-width:auto"></span></div>
+    <div class="chart-wrap" id="treeBoard3"></div>
+    <div id="tickLog3" class="callout v" style="margin-top:6px"></div>
+    <p class="note" style="margin-top:12px">→ 각 <span class="mono" style="color:var(--hot)">→</span>(Sequence)는 <b>조건→행동</b>의 짝이에요. 조건이 거짓이면 그 Sequence가 실패하고, Selector(<span class="mono" style="color:var(--q)">?</span>)는 다음 짝으로 넘어가요. 이 "조건이 맞는 첫 행동"을 고르는 구조가 거의 모든 BT의 기본 골격이에요.</p>
+  </section>
+
+  <p class="foot">// tick 평가는 실제 BT 로직(단축평가)으로 동작합니다. · <a href="index.html">목차</a></p>
+</div>
+
+<script src="shared/lib.js"></script>
+<script>
+VZ.mountTopnav('#topnav', '09 · Selector');
+VZ.setupStepper();
+const BT = VZ.BT;
+
+// 색 헬퍼
+const stColor = s => s==='success'?'var(--good)':s==='failure'?'var(--k)':s==='running'?'var(--hot)':'var(--muted)';
+
+// ---------- 공통: 위협 대응 트리 (Step 0·1) ----------
+// ? [ 도망(체력낮음 조건 + 도망 행동), 공격(적가까움 조건 + 공격 행동), 순찰(항상 성공) ]
+function buildThreatTree(){
+  return {
+    id:'root', type:'selector', name:'위협대응',
+    children:[
+      { id:'fleeSeq', type:'sequence', name:'도망',
+        children:[
+          { id:'lowHp', type:'condition', name:'체력 낮은가?', fn:bb=>bb.lowHp?'success':'failure' },
+          { id:'flee', type:'action', name:'도망친다', fn:()=>'success' },
+        ]},
+      { id:'fightSeq', type:'sequence', name:'공격',
+        children:[
+          { id:'enemyClose', type:'condition', name:'적이 가까운가?', fn:bb=>bb.enemyClose?'success':'failure' },
+          { id:'attack', type:'action', name:'공격!', fn:()=>'success' },
+        ]},
+      { id:'patrol', type:'action', name:'순찰', fn:()=>'success' },
+    ]
+  };
+}
+const threatNames = {
+  root:'위협대응(?)', fleeSeq:'도망(→)', lowHp:'체력 조건', flee:'도망',
+  fightSeq:'공격(→)', enemyClose:'적 조건', attack:'공격', patrol:'순찰',
+};
+
+// ---------- STEP 0 : 구조만 ----------
+(function(){
+  document.getElementById('treeBoard0').innerHTML = BT.draw(buildThreatTree(), {}, {W:720});
+})();
+
+// ---------- 공통 tick 애니메이션 러너 ----------
+function runTick(treeBuilder, bb, boardId, statusElId, logId, nameMap, explain){
+  const tree = treeBuilder();
+  const {status, visited} = BT.tick(tree, bb);
+  const statusMap = {};
+  VZ.stepLight(visited, v=>{ statusMap[v.id]=v.status; document.getElementById(boardId).innerHTML = BT.draw(treeBuilder(), statusMap, {W:720}); }, 380);
+  document.getElementById(statusElId).innerHTML = `루트 = <b style="color:${stColor(status)}">${status}</b>`;
+  document.getElementById(logId).innerHTML =
+    `<div class="ttl">평가 순서 (단축평가)</div>` +
+    visited.map(v=>`<span class="mono" style="color:${stColor(v.status)}">${nameMap[v.id]||v.id} → ${v.status}</span>`).join('<br>') +
+    `<p class="note" style="margin:8px 0 0">${explain(status, visited)}</p>`;
+}
+
+// ---------- STEP 1 : 위협 대응 tick ----------
+(function(){
+  let lowHp = false, enemyClose = false;
+  const hpTog = document.getElementById('hpToggle');
+  const enTog = document.getElementById('enemyToggle');
+  function reset(){
+    document.getElementById('treeBoard1').innerHTML = BT.draw(buildThreatTree(), {}, {W:720});
+    document.getElementById('tickLog').innerHTML='';
+    document.getElementById('rootStatus').textContent='';
+  }
+  hpTog.onclick = ()=>{ lowHp=!lowHp; hpTog.textContent = lowHp?'체력: 낮음':'체력: 충분';
+    hpTog.style.borderColor = lowHp?'var(--k)':'var(--q)'; reset(); };
+  enTog.onclick = ()=>{ enemyClose=!enemyClose; enTog.textContent = enemyClose?'적: 가깝다':'적: 멀다';
+    enTog.style.borderColor = enemyClose?'var(--k)':'var(--q)'; reset(); };
+  document.getElementById('tickBtn').onclick = ()=>{
+    runTick(buildThreatTree, {lowHp, enemyClose}, 'treeBoard1', 'rootStatus', 'tickLog', threatNames,
+      (status)=>{
+        if(lowHp) return '체력이 낮아 <b style="color:var(--k)">도망</b> Sequence가 성공 → Selector가 거기서 멈춰요(공격·순찰은 평가조차 안 함). 도망이 최우선이니까요.';
+        if(enemyClose) return '체력은 충분 → 도망 조건 실패 → 다음 가지 <b style="color:var(--hot)">공격</b> Sequence가 성공 → Selector 멈춤(순찰은 건너뜀).';
+        return '도망·공격 조건이 모두 실패 → 마지막 가지 <b style="color:var(--good)">순찰</b>(항상 성공)에 도달 → 기본 행동(fallback)으로 동작.';
+      });
+  };
+  reset();
+})();
+
+// ---------- STEP 2 : 토글 조합표 ----------
+(function(){
+  const combos = [
+    {lowHp:true,  enemyClose:true },
+    {lowHp:true,  enemyClose:false},
+    {lowHp:false, enemyClose:true },
+    {lowHp:false, enemyClose:false},
+  ];
+  const chosenName = visited => {
+    // 루트 selector가 멈추게 한 첫 성공 행동 leaf 찾기
+    const succ = visited.find(v=>['flee','attack','patrol'].includes(v.id) && v.status==='success');
+    return succ ? ({flee:'도망', attack:'공격', patrol:'순찰'})[succ.id] : '—';
+  };
+  let rows = `<thead><tr><th>체력 낮음</th><th>적 가까움</th><th>선택된 가지</th><th>이유</th></tr></thead><tbody>`;
+  combos.forEach(c=>{
+    const {visited} = BT.tick(buildThreatTree(), c);
+    const pick = chosenName(visited);
+    const why = c.lowHp ? '도망이 최우선' : c.enemyClose ? '도망 실패 → 공격' : '둘 다 실패 → 기본행동';
+    const col = pick==='도망'?'var(--pink)':pick==='공격'?'var(--blue)':'var(--slate)';
+    rows += `<tr class="${pick==='순찰'?'':'win'}">
+      <td>${c.lowHp?'✓':'✗'}</td><td>${c.enemyClose?'✓':'✗'}</td>
+      <td style="color:${col};font-weight:700">${pick}</td>
+      <td style="text-align:left;color:var(--muted)">${why}</td></tr>`;
+  });
+  rows += `</tbody>`;
+  document.getElementById('comboTable').innerHTML = rows;
+})();
+
+// ---------- STEP 3 : Selector + Sequence 합성 트리 ----------
+// ? [ 식사(배고픔 조건→먹기), 수면(졸림 조건→자기), 대기(항상 성공) ]
+function buildDailyTree(){
+  return {
+    id:'root', type:'selector', name:'일과',
+    children:[
+      { id:'eatSeq', type:'sequence', name:'식사',
+        children:[
+          { id:'hungry', type:'condition', name:'배고픈가?', fn:bb=>bb.hungry?'success':'failure' },
+          { id:'eat', type:'action', name:'먹는다', fn:()=>'success' },
+        ]},
+      { id:'sleepSeq', type:'sequence', name:'수면',
+        children:[
+          { id:'sleepy', type:'condition', name:'졸린가?', fn:bb=>bb.sleepy?'success':'failure' },
+          { id:'sleep', type:'action', name:'잔다', fn:()=>'success' },
+        ]},
+      { id:'idle', type:'action', name:'대기', fn:()=>'success' },
+    ]
+  };
+}
+const dailyNames = {
+  root:'일과(?)', eatSeq:'식사(→)', hungry:'배고픔 조건', eat:'먹기',
+  sleepSeq:'수면(→)', sleepy:'졸림 조건', sleep:'자기', idle:'대기',
+};
+(function(){
+  let hungry=false, sleepy=false;
+  const hTog = document.getElementById('hungryToggle');
+  const sTog = document.getElementById('sleepyToggle');
+  function reset(){
+    document.getElementById('treeBoard3').innerHTML = BT.draw(buildDailyTree(), {}, {W:720});
+    document.getElementById('tickLog3').innerHTML='';
+    document.getElementById('rootStatus3').textContent='';
+  }
+  hTog.onclick = ()=>{ hungry=!hungry; hTog.textContent = hungry?'배고픔: 예':'배고픔: 아니오';
+    hTog.style.borderColor = hungry?'var(--k)':'var(--q)'; reset(); };
+  sTog.onclick = ()=>{ sleepy=!sleepy; sTog.textContent = sleepy?'졸림: 예':'졸림: 아니오';
+    sTog.style.borderColor = sleepy?'var(--k)':'var(--q)'; reset(); };
+  document.getElementById('tickBtn3').onclick = ()=>{
+    runTick(buildDailyTree, {hungry, sleepy}, 'treeBoard3', 'rootStatus3', 'tickLog3', dailyNames,
+      ()=>{
+        if(hungry) return '배고픔 조건 성공 → <b style="color:var(--hot)">식사</b> Sequence 성공 → Selector 멈춤. "조건 맞으면 그 행동"의 첫 짝이 채택됐어요.';
+        if(sleepy) return '배고픔 실패로 식사 Sequence 실패 → 다음 짝 <b style="color:var(--hot)">수면</b>의 졸림 조건이 성공 → 잔다. Selector가 맞는 짝으로 넘어간 거예요.';
+        return '식사·수면 조건이 모두 실패 → 두 Sequence 모두 실패 → 기본 행동 <b style="color:var(--good)">대기</b>에 도달.';
+      });
+  };
+  reset();
+})();
+</script>
+</body>
+</html>

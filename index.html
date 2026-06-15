@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>행동 설계, 눈으로 보기 · FSM & Behavior Tree</title>
+<link rel="stylesheet" href="shared/theme.css">
+<style>
+  .hero{text-align:center; padding:30px 0 10px;}
+  .hero .tag{font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.25em; text-transform:uppercase; color:var(--q);}
+  .hero h1{font-size:clamp(30px,6vw,52px); font-weight:800; letter-spacing:-.03em; margin:14px 0 12px; line-height:1.05;
+    background:linear-gradient(100deg,#fff,#9bb6ff 55%,var(--v)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .hero p{color:var(--muted); max-width:660px; margin:0 auto; font-size:16px;}
+  .seclabel{font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--muted); margin:46px 0 16px; padding-bottom:8px; border-bottom:1px solid var(--line);}
+  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px;}
+  .ccard{display:block; text-decoration:none; background:var(--panel); border:1px solid var(--line); border-radius:18px;
+    padding:22px; transition:.22s; position:relative; overflow:hidden;}
+  .ccard::before{content:''; position:absolute; inset:0 auto 0 0; width:4px; background:var(--accent,var(--q)); opacity:.8;}
+  .ccard:hover{transform:translateY(-4px); border-color:var(--accent,var(--q)); box-shadow:0 14px 36px rgba(0,0,0,.35);}
+  .ccard .num{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--accent,var(--q)); font-weight:700;}
+  .ccard h3{margin:8px 0 8px; font-size:19px; color:var(--ink); letter-spacing:-.01em;}
+  .ccard p{margin:0; font-size:13.5px; color:var(--muted); line-height:1.6;}
+  .ccard .chips{margin-top:14px; display:flex; gap:6px; flex-wrap:wrap;}
+  .ccard .chip{font-family:'JetBrains Mono',monospace; font-size:10px; padding:3px 8px; border-radius:6px;
+    background:var(--panel-2); border:1px solid var(--line); color:var(--muted);}
+  .foot{margin-top:60px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="tag">Agent Behavior · FSM &amp; Behavior Tree</div>
+    <h1>행동 설계, 눈으로 보기</h1>
+    <p>게임 NPC·로봇·UI는 "지금 무엇을 할지"를 어떻게 정할까요? 두 대표 방식 <b style="color:var(--hot)">유한 상태 기계(FSM)</b>와 <b style="color:var(--hot)">행동 트리(Behavior Tree)</b>를, 상태 그래프와 tick 애니메이션으로 직접 돌려보며 익히는 인터랙티브 학습 자료입니다.</p>
+  </div>
+
+  <div class="seclabel">PART 1 · 유한 상태 기계 (FSM)</div>
+  <div class="cards">
+    <a class="ccard" style="--accent:var(--hot)" href="01-states.html">
+      <div class="num">01</div><h3>상태와 전이</h3>
+      <p>한 번에 하나의 상태. 신호등·캐릭터로 보는 상태·전이·트리거.</p>
+      <div class="chips"><span class="chip">state</span><span class="chip">transition</span></div>
+    </a>
+    <a class="ccard" style="--accent:var(--q)" href="02-triggers.html">
+      <div class="num">02</div><h3>트리거: 이벤트 vs 조건</h3>
+      <p>전이를 일으키는 방아쇠. 입력 이벤트와 가드 조건의 차이.</p>
+      <div class="chips"><span class="chip">event</span><span class="chip">guard</span></div>
+    </a>
+    <a class="ccard" style="--accent:var(--v)" href="03-fsm-npc.html">
+      <div class="num">03</div><h3>FSM으로 NPC 만들기</h3>
+      <p>순찰→추격→공격→도망. 적 거리에 따라 상태가 살아 움직이는 NPC.</p>
+      <div class="chips"><span class="chip">NPC</span><span class="chip">patrol/chase</span></div>
+    </a>
+    <a class="ccard" style="--accent:var(--good)" href="04-hfsm.html">
+      <div class="num">04</div><h3>계층적 FSM (HFSM)</h3>
+      <p>상태 안의 상태. 전이 폭발을 그룹화로 정리하는 법.</p>
+      <div class="chips"><span class="chip">nested</span><span class="chip">super-state</span></div>
+    </a>
+    <a class="ccard" style="--accent:var(--pink)" href="05-stack.html">
+      <div class="num">05</div><h3>상태 스택 (Pushdown)</h3>
+      <p>메뉴 열고 닫기처럼 이전 상태로 복귀. 상태 스택 시각화.</p>
+      <div class="chips"><span class="chip">stack</span><span class="chip">resume</span></div>
+    </a>
+    <a class="ccard" style="--accent:var(--k)" href="06-fsm-limits.html">
+      <div class="num">06</div><h3>FSM의 한계</h3>
+      <p>상태 N개 → 전이 N²로 폭발. "그래서 Behavior Tree가 등장".</p>
+      <div class="chips"><span class="chip">N² 폭발</span><span class="chip">scaling</span></div>
+    </a>
+  </div>
+
+  <div class="seclabel">PART 2 · 행동 트리 (Behavior Tree)</div>
+  <div class="cards">
+    <a class="ccard" style="--accent:var(--hot)" href="07-tick.html">
+      <div class="num">07</div><h3>Tick과 3가지 상태</h3>
+      <p>루트부터 매 tick 순회. Success·Failure·Running 점등.</p>
+      <div class="chips"><span class="chip">tick</span><span class="chip">status</span></div>
+    </a>
+    <a class="ccard" style="--accent:var(--q)" href="08-sequence.html">
+      <div class="num">08</div><h3>Sequence (AND)</h3>
+      <p>자식을 순서대로, 하나라도 실패하면 중단. "모두 성공해야".</p>
+      <div class="chips"><span class="chip">→</span><span class="chip">AND</span></div>
+    </a>
+    <a class="ccard" style="--accent:var(--v)" href="09-selector.html">
+      <div class="num">09</div><h3>Selector / Fallback (OR)</h3>
+      <p>하나라도 성공하면 중단. 우선순위로 행동 고르기.</p>
+      <div class="chips"><span class="chip">?</span><span class="chip">OR</span></div>
+    </a>
+    <a class="ccard" style="--accent:var(--good)" href="10-decorator.html">
+      <div class="num">10</div><h3>Decorator</h3>
+      <p>Inverter·Repeater·Cooldown — 자식 하나의 결과를 변형.</p>
+      <div class="chips"><span class="chip">inverter</span><span class="chip">repeat</span></div>
+    </a>
+    <a class="ccard" style="--accent:var(--blue)" href="11-blackboard.html">
+      <div class="num">11</div><h3>Blackboard</h3>
+      <p>트리가 공유하는 메모장. 지각이 쓰고 노드가 읽는 데이터.</p>
+      <div class="chips"><span class="chip">shared data</span></div>
+    </a>
+    <a class="ccard" style="--accent:var(--pink)" href="12-bt-npc.html">
+      <div class="num">12</div><h3>BT로 같은 NPC 만들기</h3>
+      <p>03의 NPC를 행동 트리로. 매 tick 재평가하는 반응성.</p>
+      <div class="chips"><span class="chip">NPC</span><span class="chip">reactive</span></div>
+    </a>
+  </div>
+
+  <div class="seclabel">PART 3 · 비교</div>
+  <div class="cards">
+    <a class="ccard" style="--accent:var(--hot)" href="13-compare.html">
+      <div class="num">13</div><h3>FSM vs Behavior Tree</h3>
+      <p>같은 NPC를 나란히. 전이 폭발 vs 모듈성 — 언제 무엇을 쓸까?</p>
+      <div class="chips"><span class="chip">trade-off</span><span class="chip">when to use</span></div>
+    </a>
+  </div>
+
+  <p class="foot">// 에이전트 행동 제어(FSM·BT)를 직접 만든 비영리 인터랙티브 학습 자료 · 모든 상태전이·tick은 실제 로직으로 동작</p>
+</div>
+</body>
+</html>

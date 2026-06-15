@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>01 상태와 전이 · 행동 설계, 눈으로 보기</title>
+<link rel="stylesheet" href="shared/theme.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topnav" id="topnav"></div>
+
+  <header>
+    <div class="tag">PART 1 · FINITE STATE MACHINE</div>
+    <h1>상태와 전이 — 한 번에 하나의 상태</h1>
+    <p class="intro">유한 상태 기계(FSM)는 "지금 무엇을 하고 있나"를 <b>유한한 상태</b> 중 <b>딱 하나</b>로 표현해요. 어떤 <b>사건(트리거)</b>이 일어나면 다른 상태로 <b>전이(transition)</b>하죠. 신호등·캐릭터 같은 예로 상태가 어떻게 바뀌는지 직접 눌러 봅시다.</p>
+  </header>
+
+  <nav class="stepper" id="stepper">
+    <button data-s="0" class="active">00 · 신호등</button>
+    <button data-s="1">01 · 상태·전이·트리거</button>
+    <button data-s="2">02 · 캐릭터 조작</button>
+    <button data-s="3">03 · 자기전이 · 가드</button>
+  </nav>
+
+  <!-- STEP 0 -->
+  <section class="panel show" data-panel="0">
+    <span class="kicker" style="color:var(--hot)">Step 00 — One State at a Time</span>
+    <h2>신호등: 항상 하나의 불만 켜진다</h2>
+    <p class="lead">신호등은 <b>빨강 → 초록 → 노랑 → 빨강</b> 순서로만 바뀌어요. 동시에 두 불이 켜지지 않죠 — 이게 FSM의 핵심입니다. "다음 신호" 버튼으로 전이를 일으켜 보세요.</p>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div id="lightBoard"></div>
+      <div style="flex:1;min-width:200px">
+        <div class="row" style="margin-bottom:12px"><button class="btn" id="lightNext">▶ 다음 신호</button></div>
+        <div id="lightInfo" class="callout"></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px">→ 노란 테두리가 <b>현재 상태(active)</b>예요. 화살표는 <b>전이</b>, 화살표 라벨은 전이를 일으키는 <b>트리거</b>입니다. 신호등은 트리거가 "타이머" 하나뿐인 단순 순환 FSM이에요.</p>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="panel" data-panel="1">
+    <span class="kicker" style="color:var(--q)">Step 01 — State · Transition · Trigger</span>
+    <h2>FSM을 이루는 세 가지</h2>
+    <div class="grid3">
+      <div class="card"><span class="tagchip q">상태 State</span><h4 style="margin-top:8px">"지금 뭐 하는 중"</h4><p class="note">동시에 <b>딱 하나만</b> 활성. 예: 정지·걷기·점프.</p></div>
+      <div class="card"><span class="tagchip k">전이 Transition</span><h4 style="margin-top:8px">상태 → 상태</h4><p class="note">한 상태에서 다른(또는 같은) 상태로 가는 화살표.</p></div>
+      <div class="card"><span class="tagchip v">트리거 Trigger</span><h4 style="margin-top:8px">전이의 방아쇠</h4><p class="note">전이를 일으키는 <b>이벤트</b>(키 입력)나 <b>조건</b>(체력&lt;20%).</p></div>
+    </div>
+    <div class="callout q" style="margin-top:18px">
+      <div class="ttl">읽는 법</div>
+      <p style="margin:0">"<b>걷기</b> 상태에서 <b>점프 키</b>(트리거)가 들어오면 → <b>점프</b> 상태로 전이한다." FSM 다이어그램의 모든 화살표가 이 한 문장이에요.</p>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" data-panel="2">
+    <span class="kicker" style="color:var(--v)">Step 02 — Drive a Character</span>
+    <h2>캐릭터를 직접 조작해 보기</h2>
+    <p class="lead">아래 버튼이 <b>트리거(입력)</b>예요. 현재 상태에서 <b>정의된 전이가 있는 입력만</b> 상태를 바꿉니다. 없는 입력은 무시돼요(예: 점프 중에 또 점프 X).</p>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div id="charBoard"></div>
+      <div style="flex:1;min-width:220px">
+        <div class="row" id="charBtns" style="gap:8px;margin-bottom:12px"></div>
+        <div id="charInfo" class="callout v"></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px">→ 같은 입력이라도 <b>현재 상태에 따라</b> 결과가 달라요. 이게 FSM이 "문맥"을 기억하는 방식입니다 — 상태 그 자체가 기억이에요.</p>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" data-panel="3">
+    <span class="kicker" style="color:var(--good)">Step 03 — Self-loop &amp; Guard</span>
+    <h2>제자리 전이와 가드 조건</h2>
+    <p class="lead"><b>자기전이(self-loop)</b>는 같은 상태로 되돌아오는 전이예요(상태 유지·반복 행동). <b>가드(guard)</b>는 "조건이 참일 때만" 전이를 허용하는 잠금장치죠.</p>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div id="guardBoard"></div>
+      <div style="flex:1;min-width:220px">
+        <div class="ctrl"><label>체력</label><input type="range" id="hp" min="0" max="100" step="5" value="80"><span class="val" id="hpv">80</span></div>
+        <div class="row" style="gap:8px;margin:10px 0"><button class="btn" id="patrolBtn">▶ 순찰 계속</button><button class="btn" id="hitBtn">⚔ 공격받음</button></div>
+        <div id="guardInfo" class="callout good"></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px">→ <b>순찰</b>의 자기전이는 적이 없을 때 계속 제자리. 체력이 <b>20 이하</b>면 가드가 열려 <b>도망</b>으로 전이해요. 가드 덕분에 "위험할 때만" 도망칩니다.</p>
+  </section>
+
+  <p class="foot">// 상태 전이는 실제 FSM 로직으로 동작합니다. · <a href="index.html">목차</a></p>
+</div>
+
+<script src="shared/lib.js"></script>
+<script>
+VZ.mountTopnav('#topnav', '01 · States');
+VZ.setupStepper();
+const SM = VZ.SM;
+
+// ---------- STEP 0 : 신호등 ----------
+(function(){
+  const states = [
+    {id:'red',   label:'빨강', x:130, y:80},
+    {id:'green', label:'초록', x:400, y:80},
+    {id:'yellow',label:'노랑', x:265, y:230},
+  ];
+  const trans = [
+    {from:'red', to:'green', label:'타이머'},
+    {from:'green', to:'yellow', label:'타이머'},
+    {from:'yellow', to:'red', label:'타이머'},
+  ];
+  const order = ['red','green','yellow'];
+  const desc = {red:'정지 — 차가 멈춰요.', green:'통행 — 차가 지나가요.', yellow:'주의 — 곧 빨강.'};
+  let cur = 0;
+  function render(){
+    const active = order[cur];
+    const t = trans.map(x=>({...x, active: x.from===active}));
+    document.getElementById('lightBoard').innerHTML = SM.draw(states, t, {W:530,H:300,active});
+    document.getElementById('lightInfo').innerHTML =
+      `<div class="ttl" style="color:var(--hot)">현재: ${states.find(s=>s.id===active).label}</div><p style="margin:0">${desc[active]}</p>`;
+  }
+  document.getElementById('lightNext').onclick = ()=>{ cur=(cur+1)%order.length; render(); };
+  render();
+})();
+
+// ---------- STEP 2 : 캐릭터 ----------
+(function(){
+  const states = [
+    {id:'idle', label:'정지', x:110, y:160},
+    {id:'walk', label:'걷기', x:300, y:80},
+    {id:'run',  label:'달리기', x:470, y:160},
+    {id:'jump', label:'점프', x:300, y:250},
+  ];
+  // 전이표: {상태: {입력: 다음상태}}
+  const T = {
+    idle: { '걷기':'walk', '점프':'jump' },
+    walk: { '멈춤':'idle', '달리기':'run', '점프':'jump' },
+    run:  { '감속':'walk' },
+    jump: { '착지':'idle' },
+  };
+  // 그래프 전이(시각화용)
+  const trans = [];
+  Object.entries(T).forEach(([from,m])=>Object.entries(m).forEach(([lab,to])=>trans.push({from,to,label:lab})));
+  const inputs = ['걷기','달리기','멈춤','점프','감속','착지'];
+  let cur = 'idle', lastMsg = '시작: 정지 상태';
+  const btns = document.getElementById('charBtns');
+  btns.innerHTML = inputs.map(i=>`<button class="btn" data-in="${i}">${i}</button>`).join('');
+  function render(){
+    const active = cur;
+    const t = trans.map(x=>({...x, active:false}));
+    document.getElementById('charBoard').innerHTML = SM.draw(states, t, {W:560,H:320,active});
+    // 현재 상태에서 가능한 입력만 활성 버튼
+    btns.querySelectorAll('button').forEach(b=>{
+      const ok = !!(T[cur] && T[cur][b.dataset.in]);
+      b.style.opacity = ok ? 1 : 0.35;
+    });
+    document.getElementById('charInfo').innerHTML =
+      `<div class="ttl">현재 상태: ${states.find(s=>s.id===cur).label}</div><p style="margin:0">${lastMsg}</p>`;
+  }
+  btns.addEventListener('click', e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    const inp=b.dataset.in, nxt=T[cur] && T[cur][inp];
+    if(nxt){ lastMsg = `"${inp}" → ${states.find(s=>s.id===nxt).label} 로 전이!`; cur=nxt; }
+    else { lastMsg = `"${inp}" 입력 — 현재 상태엔 이 전이가 없어요(무시).`; }
+    render();
+  });
+  render();
+})();
+
+// ---------- STEP 3 : self-loop + guard ----------
+(function(){
+  const states = [
+    {id:'patrol', label:'순찰', x:140, y:150},
+    {id:'flee',   label:'도망', x:420, y:150},
+  ];
+  function build(hp){
+    const t = [
+      {from:'patrol', to:'patrol', label:'적 없음'},
+      {from:'patrol', to:'flee', label:'HP≤20 [가드]'},
+      {from:'flee', to:'patrol', label:'안전'},
+    ];
+    return t;
+  }
+  let cur='patrol', msg='순찰 중 — 평화로움.';
+  function render(){
+    const hp=+document.getElementById('hp').value;
+    document.getElementById('hpv').textContent=hp;
+    const t = build(hp).map(x=>({...x, active:false}));
+    document.getElementById('guardBoard').innerHTML = SM.draw(states, t, {W:560,H:300,active:cur});
+    document.getElementById('guardInfo').innerHTML =
+      `<div class="ttl" style="color:var(--good)">현재: ${states.find(s=>s.id===cur).label}</div><p style="margin:0">${msg}</p>`;
+  }
+  document.getElementById('patrolBtn').onclick=()=>{
+    if(cur==='patrol'){ msg='순찰 자기전이 — 제자리에서 계속 순찰해요.'; }
+    else { const hp=+document.getElementById('hp').value; if(hp>20){ cur='patrol'; msg='안전해져서 순찰로 복귀!'; } else { msg='아직 위험(HP≤20) — 도망 유지.'; } }
+    render();
+  };
+  document.getElementById('hitBtn').onclick=()=>{
+    const hp=+document.getElementById('hp').value;
+    if(cur==='patrol'){
+      if(hp<=20){ cur='flee'; msg='가드 통과(HP≤20)! 도망으로 전이.'; }
+      else { msg=`공격받았지만 HP=${hp} > 20 — 가드가 막아 순찰 유지.`; }
+    } else { msg='이미 도망 중이에요.'; }
+    render();
+  };
+  document.getElementById('hp').addEventListener('input', render);
+  render();
+})();
+</script>
+</body>
+</html>

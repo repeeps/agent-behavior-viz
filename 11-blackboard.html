@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>11 Blackboard · 행동 설계, 눈으로 보기</title>
+<link rel="stylesheet" href="shared/theme.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topnav" id="topnav"></div>
+
+  <header>
+    <div class="tag">PART 2 · BEHAVIOR TREE</div>
+    <h1>Blackboard — 트리가 공유하는 메모장</h1>
+    <p class="intro">조건 노드가 "<b>적이 가까운가?</b>"를 판단하려면 어딘가에서 <b>데이터</b>를 읽어야 해요. 그 공용 데이터 창고가 <b>Blackboard</b>(칠판)예요. 트리 전체가 함께 보는 키-값 메모장이죠. 지각(perception)이 값을 <b>쓰고</b>, 노드들이 그 값을 <b>읽어</b> 행동을 정합니다.</p>
+  </header>
+
+  <nav class="stepper" id="stepper">
+    <button data-s="0" class="active">00 · 정보는 어디서</button>
+    <button data-s="1">01 · blackboard + 트리</button>
+    <button data-s="2">02 · 한 값, 여러 노드</button>
+    <button data-s="3">03 · 지각→행동 파이프라인</button>
+  </nav>
+
+  <!-- STEP 0 -->
+  <section class="panel show" data-panel="0">
+    <span class="kicker" style="color:var(--hot)">Step 00 — Where Does a Node Get Info?</span>
+    <h2>노드는 어디서 정보를 얻나</h2>
+    <p class="lead">조건 노드 "<b>적이 가까운가?</b>"는 스스로 세상을 보지 못해요. 누군가 측정해 둔 <b>숫자</b>가 있어야 비교할 수 있죠. 그 숫자를 담아두는 곳이 blackboard예요.</p>
+    <div class="callout q">
+      <div class="ttl">Blackboard = 트리 전체의 공용 키-값 저장소</div>
+      <p>게임 속 NPC의 "머릿속 메모장"이라고 생각해요. 한 줄에 <b>키 = 값</b> 형태로 정보가 적혀 있어요.</p>
+      <p style="margin-bottom:0"><code>enemy_dist = 3.2</code> · <code>health = 70</code> · <code>has_ammo = true</code></p>
+    </div>
+    <div class="grid3">
+      <div class="card" style="border-color:rgba(55,189,248,.4)"><h4 style="color:var(--q)">누가 쓰나 (write)</h4><p class="note"><b>지각(perception)</b>·센서가 매 순간 세상을 측정해 값을 갱신해요. "적까지 거리 3.2m" 같은 측정 결과를 적죠.</p></div>
+      <div class="card" style="border-color:rgba(52,211,153,.4)"><h4 style="color:var(--good)">누가 읽나 (read)</h4><p class="note"><b>조건 노드</b>들이 그 값을 읽어 <code>enemy_dist &lt; 5</code> 처럼 비교하고 Success/Failure를 답해요.</p></div>
+      <div class="card" style="border-color:rgba(251,191,36,.4)"><h4 style="color:var(--hot)">왜 공유하나</h4><p class="note">트리 곳곳의 노드가 <b>같은 한 곳</b>을 보니, 정보가 흩어지지 않고 일관돼요. 노드끼리 직접 연결할 필요도 없죠.</p></div>
+    </div>
+    <p class="note" style="margin-top:14px">→ 다음 스텝에서 슬라이더로 blackboard 값을 직접 바꿔 보고, 조건 노드가 어떻게 반응하는지 눈으로 확인해요.</p>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="panel" data-panel="1">
+    <span class="kicker" style="color:var(--q)">Step 01 — Blackboard Panel + Tree</span>
+    <h2>blackboard 값을 바꾸면 트리가 반응한다</h2>
+    <p class="lead">왼쪽에서 <b>blackboard 값</b>을 설정하고 <b>▶ tick</b>을 누르면, 오른쪽 트리의 조건 노드들이 그 값을 <code>fn(bb)</code>로 읽어 점등돼요. "<b>적이 가까우면 공격, 아니면 순찰</b>" NPC예요.</p>
+    <div class="row" style="align-items:flex-start; gap:24px">
+      <div style="flex:1; min-width:240px">
+        <div class="sub">Blackboard</div>
+        <div class="ctrl"><label>enemy_dist</label><input type="range" id="s1_dist" min="0" max="10" step="0.1" value="7"><span class="val" id="v1_dist">7.0</span></div>
+        <div class="ctrl"><label>health</label><input type="range" id="s1_hp" min="0" max="100" step="1" value="80"><span class="val" id="v1_hp">80</span></div>
+        <div class="ctrl"><label>has_ammo</label><button class="btn" id="s1_ammo">true</button></div>
+        <table class="calc" id="bbTable1"></table>
+      </div>
+      <div style="flex:1.2; min-width:300px">
+        <div class="row" style="margin:0 0 8px"><button class="btn" id="tick1">▶ tick 실행</button><span class="val" id="root1" style="min-width:auto"></span></div>
+        <div class="chart-wrap" id="tree1"></div>
+      </div>
+    </div>
+    <div id="log1" class="callout v" style="margin-top:6px"></div>
+    <p class="note" style="margin-top:10px">→ 조건 노드 "<b style="color:var(--q)">적이 가까운가?</b>"는 <code>enemy_dist &lt; 5</code>를, "<b style="color:var(--q)">탄약 있나?</b>"는 <code>has_ammo</code>를 읽어요. blackboard 한 곳이 트리 판단의 근거예요.</p>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" data-panel="2">
+    <span class="kicker" style="color:var(--v)">Step 02 — One Value, Many Nodes</span>
+    <h2>한 값이 여러 노드에 동시에 영향을 준다</h2>
+    <p class="lead"><b>health</b> 슬라이더 하나를 움직여 보세요. 같은 값을 <b style="color:var(--k)">도망 조건</b>(체력 낮으면 도망)과 <b style="color:var(--good)">회복 조건</b>(체력 적당히 낮으면 회복)이 <b>동시에</b> 읽어, 트리 여러 곳이 한 번에 바뀌고 실시간으로 재평가돼요.</p>
+    <div class="ctrl"><label>health</label><input type="range" id="s2_hp" min="0" max="100" step="1" value="45"><span class="val" id="v2_hp">45</span></div>
+    <div class="chart-wrap" id="tree2"></div>
+    <div id="log2" class="callout good" style="margin-top:6px"></div>
+    <p class="note" style="margin-top:10px">→ 트리 안에 <code>health</code>를 읽는 조건이 <b>두 군데</b> 있어요(<b style="color:var(--k)">health &lt; 25 → 도망</b>, <b style="color:var(--good)">health &lt; 60 → 회복</b>). 슬라이더 하나가 두 곳을 동시에 켜고 꺼요. Selector(?)는 위에서부터 성공을 찾으니, 도망 → 회복 → 싸움 순으로 우선순위가 정해져요.</p>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" data-panel="3">
+    <span class="kicker" style="color:var(--good)">Step 03 — Perception → Blackboard → Action</span>
+    <h2>지각 → blackboard → 행동 파이프라인</h2>
+    <p class="lead">매 프레임 <b>센서/지각</b>이 세상을 측정해 blackboard를 갱신해요. 그러면 <b>BT</b>가 그 값을 읽어 행동을 정하고, <b>행동</b>이 다시 blackboard에 결과를 적기도 해요(예: 탄약 소비). 정보가 한 바퀴 도는 거죠.</p>
+    <div class="chart-wrap" id="pipe3"></div>
+    <div class="callout q" style="margin-top:16px">
+      <div class="ttl">FSM과 무엇이 다른가</div>
+      <p>FSM(상태기계)은 정보를 각 <b>상태 안에 숨겨</b> 두는 경우가 많아요. "전투 상태"가 알고 있는 걸 "도주 상태"는 따로 알아야 하죠.</p>
+      <p style="margin-bottom:0">BT는 그 대신 blackboard로 정보를 <b>명시적으로 공유</b>해요. 모든 노드가 같은 칠판을 보니, 어떤 값이 어디서 쓰이는지 투명하고 노드를 더하고 빼기도 쉬워요.</p>
+    </div>
+    <p class="note" style="margin-top:6px">→ 핵심은 <b>분리</b>예요. <b style="color:var(--q)">지각</b>(값을 쓴다) · <b style="color:var(--hot)">판단</b>(BT가 읽는다) · <b style="color:var(--good)">행동</b>(다시 쓴다)이 blackboard를 사이에 두고 느슨하게 연결돼요.</p>
+  </section>
+
+  <p class="foot">// tick 평가는 실제 BT 로직으로 동작하며, 조건 fn은 blackboard(bb)를 읽습니다. · <a href="index.html">목차</a></p>
+</div>
+
+<script src="shared/lib.js"></script>
+<script>
+VZ.mountTopnav('#topnav', '11 · Blackboard');
+VZ.setupStepper();
+const BT = VZ.BT;
+
+// ---------- STEP 1 : blackboard 패널 + 트리 ----------
+(function(){
+  let bb = { enemy_dist: 7, health: 80, has_ammo: true };
+
+  // 트리: "적 가까우면 + 탄약 있으면 공격, 아니면 순찰"
+  function buildTree(){
+    return {
+      id:'root', type:'selector', name:'행동선택',
+      children:[
+        { id:'seq', type:'sequence', name:'전투',
+          children:[
+            { id:'c_dist', type:'condition', name:'적이 가까운가?', fn:bb=>bb.enemy_dist<5?'success':'failure' },
+            { id:'c_ammo', type:'condition', name:'탄약 있나?', fn:bb=>bb.has_ammo?'success':'failure' },
+            { id:'a_atk', type:'action', name:'공격!', fn:()=>'success' },
+          ]},
+        { id:'a_patrol', type:'action', name:'순찰', fn:()=>'success' },
+      ]
+    };
+  }
+
+  const elDist=document.getElementById('s1_dist'), vDist=document.getElementById('v1_dist');
+  const elHp=document.getElementById('s1_hp'), vHp=document.getElementById('v1_hp');
+  const elAmmo=document.getElementById('s1_ammo');
+
+  function renderTable(){
+    document.getElementById('bbTable1').innerHTML =
+      `<tr><th>키</th><th>값</th></tr>
+       <tr><td>enemy_dist</td><td>${VZ.fmt(bb.enemy_dist,1)}</td></tr>
+       <tr><td>health</td><td>${bb.health}</td></tr>
+       <tr><td>has_ammo</td><td>${bb.has_ammo}</td></tr>`;
+  }
+  function renderTree(statusMap){
+    document.getElementById('tree1').innerHTML = BT.draw(buildTree(), statusMap||{}, {W:520});
+  }
+  function reset(){ renderTree({}); document.getElementById('log1').innerHTML=''; document.getElementById('root1').textContent=''; }
+
+  elDist.oninput = ()=>{ bb={...bb, enemy_dist:+elDist.value}; vDist.textContent=VZ.fmt(bb.enemy_dist,1); renderTable(); reset(); };
+  elHp.oninput   = ()=>{ bb={...bb, health:+elHp.value}; vHp.textContent=bb.health; renderTable(); reset(); };
+  elAmmo.onclick = ()=>{ bb={...bb, has_ammo:!bb.has_ammo}; elAmmo.textContent=String(bb.has_ammo);
+    elAmmo.style.borderColor=bb.has_ammo?'var(--good)':'var(--k)'; elAmmo.style.color=bb.has_ammo?'var(--good)':'var(--k)';
+    renderTable(); reset(); };
+
+  document.getElementById('tick1').onclick = ()=>{
+    const tree = buildTree();
+    const {status, visited} = BT.tick(tree, bb);
+    const statusMap={};
+    VZ.stepLight(visited, v=>{ statusMap[v.id]=v.status; renderTree(statusMap); }, 360);
+    const nameOf={root:'루트(?)',seq:'전투(→)',c_dist:'적 거리 조건',c_ammo:'탄약 조건',a_atk:'공격',a_patrol:'순찰'};
+    document.getElementById('root1').innerHTML = `루트 = <b style="color:${status==='success'?'var(--good)':'var(--k)'}">${status}</b>`;
+    const distOK = bb.enemy_dist<5, ammoOK = bb.has_ammo;
+    let why;
+    if(distOK && ammoOK) why = `적이 가깝고(${VZ.fmt(bb.enemy_dist,1)}&lt;5) 탄약도 있어 → 전투 Sequence 성공, 공격!`;
+    else if(!distOK) why = `적이 멀어(${VZ.fmt(bb.enemy_dist,1)}≥5) 첫 조건 실패 → 전투 건너뛰고 순찰.`;
+    else why = `적은 가깝지만 탄약이 없어 → 전투 실패 → 순찰.`;
+    document.getElementById('log1').innerHTML =
+      `<div class="ttl">평가 순서 (조건이 bb를 읽음)</div>` +
+      visited.map(v=>`<span class="mono" style="color:${v.status==='success'?'var(--good)':v.status==='failure'?'var(--k)':'var(--hot)'}">${nameOf[v.id]||v.id} → ${v.status}</span>`).join('<br>') +
+      `<p class="note" style="margin:8px 0 0">${why}</p>`;
+  };
+
+  renderTable(); renderTree({});
+})();
+
+// ---------- STEP 2 : 한 값(health)이 여러 노드에 ----------
+(function(){
+  let health = 60;
+
+  function buildTree(){
+    return {
+      id:'root', type:'selector', name:'행동선택',
+      children:[
+        { id:'seq_flee', type:'sequence', name:'도주',
+          children:[
+            { id:'c_low', type:'condition', name:'health < 25?', fn:bb=>bb.health<25?'success':'failure' },
+            { id:'a_flee', type:'action', name:'도망친다', fn:()=>'success' },
+          ]},
+        { id:'seq_heal', type:'sequence', name:'회복',
+          children:[
+            { id:'c_mid', type:'condition', name:'health < 60?', fn:bb=>bb.health<60?'success':'failure' },
+            { id:'a_heal', type:'action', name:'회복한다', fn:()=>'success' },
+          ]},
+        { id:'a_fight', type:'action', name:'싸운다', fn:()=>'success' },
+      ]
+    };
+  }
+
+  const el=document.getElementById('s2_hp'), v=document.getElementById('v2_hp');
+
+  function render(){
+    const bb={health};
+    const {status, visited} = BT.tick(buildTree(), bb);
+    const map={}; visited.forEach(x=>map[x.id]=x.status);
+    document.getElementById('tree2').innerHTML = BT.draw(buildTree(), map, {W:620});
+    const lowOK = health<25, midOK = health<60;
+    let action;
+    if(lowOK) action = '<b style="color:var(--k)">도망친다</b> (체력 위험)';
+    else if(midOK) action = '<b style="color:var(--good)">회복한다</b> (체력 부족)';
+    else action = '<b style="color:var(--hot)">싸운다</b> (체력 충분)';
+    document.getElementById('log2').innerHTML =
+      `<div class="ttl">health = ${health} → ${action}</div>
+       <p class="note" style="margin:6px 0 0"><span class="mono">health &lt; 25</span> = <b style="color:${lowOK?'var(--good)':'var(--k)'}">${lowOK}</b> ·
+       <span class="mono">health &lt; 60</span> = <b style="color:${midOK?'var(--good)':'var(--k)'}">${midOK}</b> —
+       같은 값 하나를 두 조건이 읽어요. 결과 루트 = <b style="color:${status==='success'?'var(--good)':'var(--k)'}">${status}</b>.</p>`;
+  }
+
+  el.oninput = ()=>{ health=+el.value; v.textContent=health; render(); };
+  render();
+})();
+
+// ---------- STEP 3 : 지각→blackboard→행동 파이프라인 다이어그램 ----------
+(function(){
+  const W=720, H=320, cx=W/2, cy=148, rad=110;
+  // 세 단계를 칠판(가운데) 둘레에 배치
+  const pos = {
+    perc:  { x:cx,        y:cy-rad,  c:'var(--q)',   label:'지각 / 센서',  sub:'enemy_dist, health 측정' },
+    bt:    { x:cx+rad+18,  y:cy+58,  c:'var(--hot)', label:'BT (판단)',    sub:'조건이 bb를 읽음' },
+    act:   { x:cx-rad-18,  y:cy+58,  c:'var(--good)',label:'행동',         sub:'공격·이동·탄약 소비' },
+  };
+  const bw=150, bh=54;
+  function box(p){
+    return `<rect x="${p.x-bw/2}" y="${p.y-bh/2}" width="${bw}" height="${bh}" rx="11"
+        fill="color-mix(in srgb, ${p.c} 14%, var(--panel-2))" stroke="${p.c}" stroke-width="2"/>
+      <text x="${p.x}" y="${p.y-4}" text-anchor="middle" fill="${p.c}" font-size="13" font-weight="800">${p.label}</text>
+      <text x="${p.x}" y="${p.y+14}" text-anchor="middle" fill="var(--muted)" font-size="10" font-family="JetBrains Mono">${p.sub}</text>`;
+  }
+  // 가운데 blackboard
+  const bbx=cx, bby=cy+34, bbw=170, bbh=70;
+  const center = `<rect x="${bbx-bbw/2}" y="${bby-bbh/2}" width="${bbw}" height="${bbh}" rx="12"
+      fill="var(--panel)" stroke="var(--v)" stroke-width="2.5" stroke-dasharray="2 0"/>
+    <text x="${bbx}" y="${bby-12}" text-anchor="middle" fill="var(--v)" font-size="13" font-weight="800">BLACKBOARD</text>
+    <text x="${bbx}" y="${bby+6}" text-anchor="middle" fill="var(--ink)" font-size="10" font-family="JetBrains Mono">enemy_dist · health</text>
+    <text x="${bbx}" y="${bby+20}" text-anchor="middle" fill="var(--ink)" font-size="10" font-family="JetBrains Mono">has_ammo</text>`;
+
+  function arrow(x1,y1,x2,y2,col,label,lx,ly){
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="2.5" marker-end="url(#p3arw)"/>
+      <text x="${lx}" y="${ly}" text-anchor="middle" fill="${col}" font-size="10" font-weight="700" font-family="JetBrains Mono">${label}</text>`;
+  }
+
+  const defs = `<defs><marker id="p3arw" markerWidth="11" markerHeight="11" refX="8" refY="4" orient="auto">
+    <path d="M0,0 L10,4 L0,8 Z" fill="var(--muted)"/></marker></defs>`;
+
+  // 지각 → bb (write), bb → bt (read), bt → act, act → bb (write back)
+  const arrows =
+    arrow(pos.perc.x, pos.perc.y+bh/2, bbx, bby-bbh/2, 'var(--q)',   'write', cx+44, cy-2) +
+    arrow(bbx+30, bby+bbh/2-4, pos.bt.x-bw/2+4, pos.bt.y-bh/2, 'var(--hot)', 'read', cx+120, cy+78) +
+    arrow(pos.bt.x-bw/2, pos.bt.y+bh/2-2, pos.act.x+bw/2, pos.act.y+bh/2-2, 'var(--good)','명령', cx, cy+128) +
+    arrow(pos.act.x+bw/2-4, pos.act.y-bh/2, bbx-30, bby+bbh/2-4, 'var(--good)','write back', cx-120, cy+78);
+
+  document.getElementById('pipe3').innerHTML =
+    `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="max-width:100%;display:block">
+       ${defs}${arrows}${center}${box(pos.perc)}${box(pos.bt)}${box(pos.act)}
+     </svg>`;
+})();
+</script>
+</body>
+</html>

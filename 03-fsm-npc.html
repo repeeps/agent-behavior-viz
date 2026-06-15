@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>03 FSM NPC · 행동 설계, 눈으로 보기</title>
+<link rel="stylesheet" href="shared/theme.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topnav" id="topnav"></div>
+
+  <header>
+    <div class="tag">PART 1 · FINITE STATE MACHINE</div>
+    <h1>FSM으로 게임 NPC 만들기</h1>
+    <p class="intro">이번엔 FSM으로 실제 <b>게임 NPC</b>를 설계해요. 적과의 <b>거리</b>와 자신의 <b>체력</b>이라는 두 입력으로 <b>순찰·추격·공격·도망</b> 네 모드를 오가는 적 캐릭터죠. 슬라이더를 움직여 상태가 어떻게 자동으로 결정되는지 직접 봅시다. 같은 NPC를 나중에 <b>12장에서 행동 트리(BT)</b>로 다시 만들 거예요.</p>
+  </header>
+
+  <nav class="stepper" id="stepper">
+    <button data-s="0" class="active">00 · 4가지 모드</button>
+    <button data-s="1">01 · 적 거리로 전이</button>
+    <button data-s="2">02 · 체력 → 도망</button>
+    <button data-s="3">03 · 전이 규칙 표</button>
+  </nav>
+
+  <!-- STEP 0 -->
+  <section class="panel show" data-panel="0">
+    <span class="kicker" style="color:var(--hot)">Step 00 — Four Modes</span>
+    <h2>NPC의 4가지 모드</h2>
+    <p class="lead">이 NPC는 항상 네 상태 중 <b>딱 하나</b>에 있어요. 평소엔 <b>순찰</b>하다가, 적을 발견하면 <b>추격</b>하고, 가까워지면 <b>공격</b>하며, 위험하면 <b>도망</b>칩니다. 각 모드가 "지금 이 NPC가 무슨 일을 하는가"를 한 단어로 표현해요.</p>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div id="modeBoard"></div>
+      <div style="flex:1;min-width:200px">
+        <div class="grid3" style="grid-template-columns:1fr">
+          <div class="card"><span class="tagchip q">순찰 patrol</span><p class="note" style="margin-top:8px">적이 멀 때 — 정해진 경로를 돌며 적을 탐색해요.</p></div>
+          <div class="card"><span class="tagchip v">추격 chase</span><p class="note" style="margin-top:8px">적을 발견 — 사거리 안으로 들어가려 쫓아가요.</p></div>
+          <div class="card"><span class="tagchip k">공격 attack</span><p class="note" style="margin-top:8px">적이 코앞 — 멈춰서 공격을 가해요.</p></div>
+          <div class="card"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:700;background:rgba(52,211,153,.15);color:var(--good)">도망 flee</span><p class="note" style="margin-top:8px">체력 위험 — 거리와 무관하게 전부 버리고 후퇴해요.</p></div>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px">→ 화살표는 <b>전이</b>예요. 모드 사이를 어떤 조건에서 오가는지가 NPC의 <b>행동 규칙</b>입니다. 다음 스텝부터 그 규칙을 하나씩 살아 움직이게 만들어 봐요.</p>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="panel" data-panel="1">
+    <span class="kicker" style="color:var(--q)">Step 01 — Transition by Distance</span>
+    <h2>적 거리로 전이하기</h2>
+    <p class="lead">가장 기본 규칙은 <b>적과의 거리</b>예요. 슬라이더를 움직이면 거리에 따라 상태가 <b>자동으로</b> 결정돼요 — 거리가 멀면 순찰, 어느 정도 가까우면 추격, 코앞이면 공격. (이 스텝에선 체력은 충분하다고 가정해요.)</p>
+    <div class="callout q">
+      <div class="ttl">거리 규칙</div>
+      <p style="margin:0"><code>거리 &gt; 8</code> → <b>순찰</b> · <code>3 &lt; 거리 ≤ 8</code> → <b>추격</b> · <code>거리 ≤ 3</code> → <b>공격</b></p>
+    </div>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div id="distBoard"></div>
+      <div style="flex:1;min-width:220px">
+        <div class="ctrl"><label>적 거리</label><input type="range" id="dist1" min="0" max="14" step="0.5" value="11"><span class="val" id="dist1v">11</span></div>
+        <div id="dist1Info" class="callout"></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px">→ 슬라이더를 끝까지 당기면 노란 테두리(현재 상태)와 켜진 <b>전이 화살표</b>가 함께 움직여요. 입력(거리) 하나가 상태를 통째로 결정합니다.</p>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" data-panel="2">
+    <span class="kicker" style="color:var(--v)">Step 02 — Health → Flee</span>
+    <h2>체력이 낮으면 도망</h2>
+    <p class="lead">이제 <b>체력</b>을 더해요. 체력이 <b>25 이하</b>면 적이 멀든 가깝든 <b>무조건 도망</b>이에요. 도망은 <b>최우선 규칙</b>이라 거리 규칙보다 먼저 검사해요. 두 슬라이더를 조합해 상태가 어떻게 갈리는지 보세요.</p>
+    <div class="callout v">
+      <div class="ttl">우선순위 (위에서부터 검사)</div>
+      <p style="margin:0">① <code>체력 ≤ 25</code> → <b>도망</b> (거리 무관)<br>② 아니면 거리 규칙: <code>&gt;8</code> 순찰 · <code>3~8</code> 추격 · <code>≤3</code> 공격</p>
+    </div>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div id="hpBoard"></div>
+      <div style="flex:1;min-width:220px">
+        <div class="ctrl"><label>적 거리</label><input type="range" id="dist2" min="0" max="14" step="0.5" value="5"><span class="val" id="dist2v">5</span></div>
+        <div class="ctrl"><label>체력</label><input type="range" id="hp2" min="0" max="100" step="5" value="80"><span class="val" id="hp2v">80</span></div>
+        <div id="hp2Info" class="callout good"></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px">→ 체력을 25 이하로 내리면 거리를 아무리 바꿔도 항상 <b>도망</b>이에요. "우선순위가 높은 규칙이 먼저 이긴다" — 이게 FSM 전이 설계의 핵심입니다.</p>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" data-panel="3">
+    <span class="kicker" style="color:var(--good)">Step 03 — Full Transition Table</span>
+    <h2>전이 규칙 전체 표</h2>
+    <p class="lead">지금까지의 규칙을 한 표로 모았어요. 이 표가 곧 NPC의 <b>두뇌</b>예요 — 매 프레임 현재 상태와 입력을 보고 "어디로 갈지"를 결정합니다. 우선순위는 위에서 아래로 적용돼요.</p>
+    <table class="calc">
+      <thead>
+        <tr><th>우선</th><th>조건</th><th>→ 가는 상태</th><th style="text-align:left">의미</th></tr>
+      </thead>
+      <tbody id="ruleTable"></tbody>
+    </table>
+    <div class="callout" style="margin-top:18px">
+      <div class="ttl" style="color:var(--hot)">한계 예고 — 상태가 늘면 전이가 폭발한다</div>
+      <p style="margin:0 0 6px">상태 4개에 규칙 몇 줄이면 깔끔하죠. 하지만 <b>상태가 늘면 전이 화살표가 급증해요</b> — 상태 N개면 전이는 최대 N×(N−1)개. 6장에서 이 "전이 폭발" 문제를 직접 마주하게 돼요.</p>
+      <p style="margin:0">그래서 <b>12장에서는 바로 이 NPC를 행동 트리(BT)</b>로 다시 만들어요. 같은 동작을 더 작은 규칙 조각들의 트리로 표현해 확장성을 얻는 거죠.</p>
+    </div>
+    <div class="row" style="gap:24px;align-items:flex-start;margin-top:18px">
+      <div id="fullBoard"></div>
+      <div style="flex:1;min-width:200px">
+        <p class="note">왼쪽은 NPC의 완성된 상태 그래프예요. 네 모드와 그 사이를 잇는 모든 전이가 보입니다. <b>도망</b>은 어느 상태에서든 진입할 수 있어 화살표가 가장 많이 모여요.</p>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">// 상태 전이는 실제 FSM 로직으로 동작합니다. · <a href="index.html">목차</a></p>
+</div>
+
+<script src="shared/lib.js"></script>
+<script>
+VZ.mountTopnav('#topnav', '03 · FSM NPC');
+VZ.setupStepper();
+const SM = VZ.SM;
+
+// 네 상태의 공통 배치 (다이아몬드형)
+const NPC_STATES = [
+  {id:'patrol', label:'순찰', x:120, y:170},
+  {id:'chase',  label:'추격', x:290, y:70},
+  {id:'attack', label:'공격', x:460, y:170},
+  {id:'flee',   label:'도망', x:290, y:280},
+];
+
+// ---- 상태 결정 로직 (검증 가능, 순수 함수) ----
+// dist: 적 거리, hp: 체력
+function decideState(dist, hp){
+  if(hp <= 25) return 'flee';      // ① 도망 최우선
+  if(dist > 8) return 'patrol';    // ② 멀면 순찰
+  if(dist > 3) return 'chase';     // ③ 중간이면 추격
+  return 'attack';                 // ④ 코앞이면 공격
+}
+
+// ---------- STEP 0 : 4가지 모드 소개 ----------
+(function(){
+  const trans = [
+    {from:'patrol', to:'chase',  label:'적 발견'},
+    {from:'chase',  to:'attack', label:'근접'},
+    {from:'chase',  to:'patrol', label:'놓침'},
+    {from:'attack', to:'chase',  label:'멀어짐'},
+    {from:'patrol', to:'flee',   label:'위험'},
+    {from:'chase',  to:'flee',   label:'위험'},
+    {from:'attack', to:'flee',   label:'위험'},
+    {from:'flee',   to:'patrol', label:'회복'},
+  ];
+  document.getElementById('modeBoard').innerHTML =
+    SM.draw(NPC_STATES, trans, {W:560, H:350, active:'patrol'});
+})();
+
+// ---------- STEP 1 : 적 거리로 전이 ----------
+(function(){
+  const distInput = document.getElementById('dist1');
+  // 거리 기준 전이 화살표 (체력 충분 가정)
+  const baseTrans = [
+    {from:'patrol', to:'chase',  label:'거리≤8'},
+    {from:'chase',  to:'attack', label:'거리≤3'},
+    {from:'attack', to:'chase',  label:'거리>3'},
+    {from:'chase',  to:'patrol', label:'거리>8'},
+  ];
+  // 현재 상태로 진입시킨 전이 한 개를 active 표시
+  function activeEdge(state){
+    if(state==='chase')  return {from:'patrol', to:'chase'};
+    if(state==='attack') return {from:'chase',  to:'attack'};
+    return {from:'chase', to:'patrol'}; // patrol 일 때
+  }
+  function render(){
+    const dist = +distInput.value;
+    document.getElementById('dist1v').textContent = dist;
+    const state = decideState(dist, 100); // 체력 충분
+    const edge = activeEdge(state);
+    const t = baseTrans.map(x=>({...x, active: x.from===edge.from && x.to===edge.to}));
+    document.getElementById('distBoard').innerHTML =
+      SM.draw(NPC_STATES, t, {W:560, H:350, active:state});
+    const labels = {patrol:'순찰', chase:'추격', attack:'공격'};
+    const why = dist>8 ? '거리>8 이라 적이 멀어요.'
+              : dist>3 ? '3<거리≤8 — 사거리 밖이라 쫓아가요.'
+              : '거리≤3 — 코앞이라 공격해요.';
+    document.getElementById('dist1Info').innerHTML =
+      `<div class="ttl" style="color:var(--hot)">현재: ${labels[state]} (거리 ${dist})</div><p style="margin:0">${why}</p>`;
+  }
+  distInput.addEventListener('input', render);
+  render();
+})();
+
+// ---------- STEP 2 : 체력 → 도망 ----------
+(function(){
+  const distInput = document.getElementById('dist2');
+  const hpInput = document.getElementById('hp2');
+  const trans = [
+    {from:'patrol', to:'chase',  label:'거리≤8'},
+    {from:'chase',  to:'attack', label:'거리≤3'},
+    {from:'attack', to:'chase',  label:'거리>3'},
+    {from:'chase',  to:'patrol', label:'거리>8'},
+    {from:'patrol', to:'flee',   label:'HP≤25'},
+    {from:'chase',  to:'flee',   label:'HP≤25'},
+    {from:'attack', to:'flee',   label:'HP≤25'},
+  ];
+  function render(){
+    const dist = +distInput.value, hp = +hpInput.value;
+    document.getElementById('dist2v').textContent = dist;
+    document.getElementById('hp2v').textContent = hp;
+    const state = decideState(dist, hp);
+    // active 전이: 도망이면 도망 진입 화살표, 아니면 거리 화살표
+    let edge;
+    if(state==='flee')        edge = {from: dist>8?'patrol':dist>3?'chase':'attack', to:'flee'};
+    else if(state==='chase')  edge = {from:'patrol', to:'chase'};
+    else if(state==='attack') edge = {from:'chase',  to:'attack'};
+    else                      edge = {from:'chase',  to:'patrol'};
+    const t = trans.map(x=>({...x, active: x.from===edge.from && x.to===edge.to}));
+    document.getElementById('hpBoard').innerHTML =
+      SM.draw(NPC_STATES, t, {W:560, H:360, active:state});
+    const labels = {patrol:'순찰', chase:'추격', attack:'공격', flee:'도망'};
+    let why;
+    if(state==='flee') why = `체력 ${hp} ≤ 25 — 거리(${dist})와 무관하게 도망이 최우선!`;
+    else why = `체력 ${hp} 은 충분(>25) → 거리 규칙 적용: ${dist>8?'순찰':dist>3?'추격':'공격'}.`;
+    document.getElementById('hp2Info').innerHTML =
+      `<div class="ttl" style="color:var(--good)">현재: ${labels[state]}</div><p style="margin:0">${why}</p>`;
+  }
+  distInput.addEventListener('input', render);
+  hpInput.addEventListener('input', render);
+  render();
+})();
+
+// ---------- STEP 3 : 전이 규칙 표 + 완성 그래프 ----------
+(function(){
+  const rules = [
+    ['①', 'HP ≤ 25',            '도망', '체력 위험 — 어디서든 후퇴 (최우선)'],
+    ['②', 'HP > 25 · 거리 > 8',  '순찰', '안전하고 적이 멂 — 경로 탐색'],
+    ['③', 'HP > 25 · 3 < 거리 ≤ 8', '추격', '적 발견, 사거리 밖 — 접근'],
+    ['④', 'HP > 25 · 거리 ≤ 3',  '공격', '적 근접 — 타격'],
+  ];
+  const colors = {도망:'var(--good)', 순찰:'var(--q)', 추격:'var(--v)', 공격:'var(--k)'};
+  document.getElementById('ruleTable').innerHTML = rules.map(r=>
+    `<tr><td>${r[0]}</td><td>${r[1]}</td><td style="color:${colors[r[2]]};font-weight:700">${r[2]}</td><td style="text-align:left;color:var(--muted)">${r[3]}</td></tr>`
+  ).join('');
+
+  const trans = [
+    {from:'patrol', to:'chase',  label:'적 발견'},
+    {from:'chase',  to:'attack', label:'근접'},
+    {from:'attack', to:'chase',  label:'멀어짐'},
+    {from:'chase',  to:'patrol', label:'놓침'},
+    {from:'patrol', to:'flee',   label:'HP≤25'},
+    {from:'chase',  to:'flee',   label:'HP≤25'},
+    {from:'attack', to:'flee',   label:'HP≤25'},
+    {from:'flee',   to:'patrol', label:'회복'},
+  ];
+  document.getElementById('fullBoard').innerHTML =
+    SM.draw(NPC_STATES, trans, {W:560, H:360, active:null});
+})();
+</script>
+</body>
+</html>

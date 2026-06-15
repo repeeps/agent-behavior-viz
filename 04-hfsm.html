@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>04 계층적 FSM · 행동 설계, 눈으로 보기</title>
+<link rel="stylesheet" href="shared/theme.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topnav" id="topnav"></div>
+
+  <header>
+    <div class="tag">PART 1 · FINITE STATE MACHINE</div>
+    <h1>계층적 FSM — 상태 안의 상태</h1>
+    <p class="intro">평평한 FSM은 상태가 늘면 <b>똑같은 전이</b>가 여기저기 중복돼요. 계층적 FSM(HFSM)은 비슷한 하위상태들을 <b>상위상태</b>로 묶고, 공통 전이를 상위에서 <b>한 번만</b> 정의해요. 화살표가 폭발하는 문제를 어떻게 정리하는지 단계별로 봅시다.</p>
+  </header>
+
+  <nav class="stepper" id="stepper">
+    <button data-s="0" class="active">00 · 전이 중복 문제</button>
+    <button data-s="1">01 · 그룹으로 묶기</button>
+    <button data-s="2">02 · 중첩 시각화</button>
+    <button data-s="3">03 · 왜 좋은가</button>
+  </nav>
+
+  <!-- STEP 0 -->
+  <section class="panel show" data-panel="0">
+    <span class="kicker" style="color:var(--hot)">Step 00 — The Duplication Problem</span>
+    <h2>비슷한 전이가 자꾸 반복된다</h2>
+    <p class="lead">캐릭터에 <b>걷기·뛰기·점프</b> 상태가 있어요. 그런데 어느 상태든 체력이 0이 되면 <b>사망 → 리스폰</b>으로 가야 하죠. 평평한 FSM에선 상태마다 이 전이를 <b>각자</b> 그려야 해요. "사망 전이 보기"를 눌러 화살표가 얼마나 중복되는지 확인해 보세요.</p>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div id="flatBoard"></div>
+      <div style="flex:1;min-width:220px">
+        <div class="row" style="margin-bottom:12px">
+          <button class="btn" id="flatToggle">⚔ 사망 전이 보기</button>
+        </div>
+        <div id="flatInfo" class="callout"></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px">→ 걷기·뛰기·점프 <b>세 상태 모두</b>에서 똑같은 <b>"HP=0 → 사망"</b> 전이가 필요해요. 공통 전이 1종이 상태 수만큼(N개) <b>중복</b>되는 거죠 — 상태가 늘면 이 중복도 <b>선형으로</b> 늘어요. (모든 상태가 서로 오가는 최악의 <b>제곱 폭발 N×(N−1)</b>은 6장에서 따로 다뤄요.)</p>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="panel" data-panel="1">
+    <span class="kicker" style="color:var(--q)">Step 01 — Group Into a Superstate</span>
+    <h2>하위상태를 상위상태로 묶기</h2>
+    <p class="lead"><b>걷기·뛰기·점프</b>는 결국 "땅 위에 있는 상태"예요. 이들을 상위상태 <b>지상(Grounded)</b> 하나로 묶으면, 공통 전이 <b>"데미지 → 피격"</b>을 지상 단위로 <b>한 번만</b> 정의할 수 있어요. 토글로 묶기 전/후를 비교해 보세요.</p>
+    <div class="view-toggle" id="groupToggle">
+      <button data-v="flat" class="on">묶기 전 (평평)</button>
+      <button data-v="grouped">묶은 후 (HFSM)</button>
+    </div>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div id="groupBoard"></div>
+      <div style="flex:1;min-width:200px">
+        <div id="groupInfo" class="callout q"></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px">→ 점선 상자가 <b>상위상태(지상)</b>예요. "데미지" 전이가 <b>상자 테두리</b>에서 출발하니, 안에 어떤 하위상태가 있든 적용돼요. 전이 3개가 <b>1개로</b> 줄었죠.</p>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" data-panel="2">
+    <span class="kicker" style="color:var(--v)">Step 02 — Nested Visualization</span>
+    <h2>상위 FSM과 하위 FSM, 두 층으로</h2>
+    <p class="lead">상위 FSM은 <b>평화 ↔ 전투</b> 두 상태예요. 그런데 <b>전투</b> 안에는 또 하위 FSM(<b>겨냥 → 발사 → 재장전</b>)이 돌아가죠. 토글로 상위 상태를 바꾸면, 그 안에서 동작하는 <b>하위 그래프</b>가 바뀌어요. 상위 전이가 일어나면 하위는 항상 <b>초기상태</b>로 진입합니다.</p>
+    <div class="row" style="gap:18px;align-items:center;margin-bottom:6px">
+      <div class="view-toggle" id="modeToggle">
+        <button data-v="peace" class="on">평화 모드</button>
+        <button data-v="combat">전투 모드</button>
+      </div>
+      <button class="btn" id="subStep">▶ 하위 한 틱</button>
+    </div>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div style="flex:1;min-width:280px">
+        <div class="label">상위 FSM (Top-level)</div>
+        <div id="topBoard"></div>
+      </div>
+      <div style="flex:1;min-width:280px">
+        <div class="label">하위 FSM (현재 상위상태 내부)</div>
+        <div id="subBoard"></div>
+      </div>
+    </div>
+    <div id="nestInfo" class="callout v" style="margin-top:8px"></div>
+    <p class="note" style="margin-top:14px">→ <b>평화</b>일 땐 하위가 <b>순찰</b> 한 상태뿐이에요. <b>전투</b>로 전이하면 하위 FSM이 <b>겨냥(초기상태)</b>부터 시작하죠. "하위 한 틱"으로 안쪽 사이클을 돌려 보세요. 상위가 바뀌면 안쪽은 <b>리셋</b>됩니다.</p>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" data-panel="3">
+    <span class="kicker" style="color:var(--good)">Step 03 — Why It Helps</span>
+    <h2>공통 전이 한 번 → 전이 수가 준다</h2>
+    <p class="lead">하위상태 수를 늘려 보세요. 평평한 FSM은 공통 전이가 <b>상태마다</b> 필요해 화살표가 선형으로 늘지만, HFSM은 공통 전이를 <b>상위에서 한 번</b>만 두면 돼요.</p>
+    <div class="ctrl">
+      <label>지상 하위상태 수</label>
+      <input type="range" id="nSub" min="2" max="8" step="1" value="3">
+      <span class="val" id="nSubv">3</span>
+    </div>
+    <div class="grid3" style="grid-template-columns:1fr 1fr;margin-top:10px">
+      <div class="card">
+        <span class="tagchip k">평평한 FSM</span>
+        <div id="cntFlat" style="font-size:30px;font-weight:800;margin:8px 0 2px;color:var(--k)"></div>
+        <p class="note" id="flatBreak" style="margin:0"></p>
+      </div>
+      <div class="card">
+        <span class="tagchip v">HFSM</span>
+        <div id="cntH" style="font-size:30px;font-weight:800;margin:8px 0 2px;color:var(--good)"></div>
+        <p class="note" id="hBreak" style="margin:0"></p>
+      </div>
+    </div>
+    <div id="cntBars" style="margin-top:18px"></div>
+    <div class="callout good" style="margin-top:18px">
+      <div class="ttl">정리</div>
+      <p>공통 전이(사망·피격·중단 등)를 <b>상위상태에서 한 번</b> 정의 → 전이 수가 줄고 <b>재사용</b>이 됩니다. 새 하위상태를 추가해도 공통 전이는 그대로예요.</p>
+      <p style="margin:0">단, 계층이 <b>깊고 복잡해지면</b> 어느 층의 전이가 우선인지 추적하기 어려워져요. 이 한계는 <b>06장</b>에서 다루고, 그 대안으로 <b>행동 트리(BT)</b>를 예고합니다.</p>
+    </div>
+  </section>
+
+  <p class="foot">// 상태 전이는 실제 HFSM 로직으로 동작합니다. · <a href="index.html">목차</a></p>
+</div>
+
+<script src="shared/lib.js"></script>
+<script>
+VZ.mountTopnav('#topnav', '04 · HFSM');
+VZ.setupStepper();
+const SM = VZ.SM;
+
+// ---------- STEP 0 : 평평한 FSM의 전이 중복 ----------
+(function(){
+  const states = [
+    {id:'walk',    label:'걷기',   x:120, y:90},
+    {id:'run',     label:'뛰기',   x:300, y:90},
+    {id:'jump',    label:'점프',   x:480, y:90},
+    {id:'dead',    label:'사망',   x:210, y:240},
+    {id:'respawn', label:'리스폰', x:400, y:240},
+  ];
+  // 이동 상태끼리의 평범한 전이
+  const base = [
+    {from:'walk', to:'run',  label:'가속'},
+    {from:'run',  to:'walk', label:'감속'},
+    {from:'walk', to:'jump', label:'점프키'},
+    {from:'jump', to:'walk', label:'착지'},
+  ];
+  // 공통 전이: 모든 이동 상태 → 사망 (중복!)
+  const death = [
+    {from:'walk', to:'dead', label:'HP=0'},
+    {from:'run',  to:'dead', label:'HP=0'},
+    {from:'jump', to:'dead', label:'HP=0'},
+    {from:'dead', to:'respawn', label:'대기'},
+    {from:'respawn', to:'walk', label:'부활'},
+  ];
+  let showDeath = false;
+  function render(){
+    const t = (showDeath ? base.concat(death) : base)
+      .map(x=>({...x, active: showDeath && x.label==='HP=0'}));
+    document.getElementById('flatBoard').innerHTML =
+      SM.draw(states, t, {W:600, H:310, active:null, r:30});
+    const dupCount = death.filter(d=>d.label==='HP=0').length;
+    document.getElementById('flatInfo').innerHTML = showDeath
+      ? `<div class="ttl" style="color:var(--hot)">중복 전이 ${dupCount}개</div><p style="margin:0">"HP=0 → 사망"이 <b>걷기·뛰기·점프</b>마다 따로 필요해요. 같은 의미의 화살표가 ${dupCount}번 반복되죠.</p>`
+      : `<div class="ttl" style="color:var(--hot)">이동 상태 3개</div><p style="margin:0">지금은 평범한 이동 전이만 보여요. 버튼을 눌러 <b>공통 전이(사망)</b>를 추가해 보세요.</p>`;
+  }
+  document.getElementById('flatToggle').onclick = ()=>{
+    showDeath = !showDeath;
+    document.getElementById('flatToggle').textContent = showDeath ? '↩ 사망 전이 숨기기' : '⚔ 사망 전이 보기';
+    render();
+  };
+  render();
+})();
+
+// ---------- STEP 1 : 그룹으로 묶기 (묶기 전/후 토글) ----------
+(function(){
+  const flatStates = [
+    {id:'walk', label:'걷기', x:110, y:80},
+    {id:'run',  label:'뛰기', x:110, y:200},
+    {id:'jump', label:'점프', x:110, y:320},
+    {id:'hit',  label:'피격', x:470, y:200},
+  ];
+  const flatTrans = [
+    {from:'walk', to:'hit', label:'데미지'},
+    {from:'run',  to:'hit', label:'데미지'},
+    {from:'jump', to:'hit', label:'데미지'},
+    {from:'hit',  to:'walk', label:'회복'},
+  ];
+  // HFSM 후: 하위상태는 상위상자 안, 데미지는 상자→피격 1개
+  const groupStates = [
+    {id:'walk', label:'걷기', x:140, y:90},
+    {id:'run',  label:'뛰기', x:260, y:90},
+    {id:'jump', label:'점프', x:200, y:200},
+    {id:'hit',  label:'피격', x:480, y:150},
+  ];
+  const groupTrans = [
+    {from:'walk', to:'run',  label:''},
+    {from:'run',  to:'walk', label:''},
+    {from:'walk', to:'jump', label:''},
+    {from:'jump', to:'walk', label:''},
+    {from:'grounded', to:'hit', label:'데미지'},   // 상위상자 → 피격
+    {from:'hit', to:'grounded', label:'회복'},
+  ];
+  const info = document.getElementById('groupInfo');
+  function renderFlat(){
+    const t = flatTrans.map(x=>({...x, active:x.label==='데미지'}));
+    document.getElementById('groupBoard').innerHTML =
+      SM.draw(flatStates, t, {W:580, H:380, active:null, r:30});
+    info.innerHTML = `<div class="ttl">데미지 전이 3개</div><p style="margin:0">걷기·뛰기·점프 각각에서 <b>"데미지 → 피격"</b>을 따로 그렸어요. 똑같은 화살표가 3개죠.</p>`;
+  }
+  function renderGrouped(){
+    // 상위상자 좌표 (하위상태들을 감싸는 점선 박스)
+    const boxX=90, boxY=45, boxW=240, boxH=210;
+    const groundedNode = {x: boxX+boxW, y: boxY+boxH/2}; // 상자 우측 중앙에서 출발
+    // SM.draw는 'grounded' 노드를 모르므로, 임시 가짜 노드를 끼워 그린 뒤 박스를 덧그림
+    const statesWithBox = groupStates.concat([{id:'grounded', label:'', x:groundedNode.x, y:groundedNode.y}]);
+    const t = groupTrans.map(x=>({...x, active:x.label==='데미지'}));
+    let svg = SM.draw(statesWithBox, t, {W:580, H:330, active:null, r:30});
+    // 가짜 grounded 노드 원을 지우기 위해 점선 박스를 그 위에 덮어 그림 + 상위 라벨
+    const box = `<rect x="${boxX}" y="${boxY}" width="${boxW}" height="${boxH}" rx="16"
+        fill="rgba(192,132,252,.06)" stroke="var(--v)" stroke-width="2" stroke-dasharray="7 5"/>
+      <text x="${boxX+12}" y="${boxY+22}" fill="var(--v)" font-size="12" font-weight="700"
+        font-family="JetBrains Mono">지상 (Grounded)</text>`;
+    // 가짜 노드 가리기 (배경색 원)
+    const mask = `<circle cx="${groundedNode.x}" cy="${groundedNode.y}" r="31" fill="var(--panel-2)"/>`;
+    svg = svg.replace('</svg>', mask + box + '</svg>');
+    // box를 노드들 아래에 깔기 위해 첫 노드 직전 삽입이 이상적이나, 위 mask로 가짜 노드만 덮음.
+    document.getElementById('groupBoard').innerHTML = svg;
+    info.innerHTML = `<div class="ttl">데미지 전이 1개</div><p style="margin:0">하위 3개를 <b>지상</b> 상자로 묶고, <b>"데미지 → 피격"</b>을 상자 단위로 한 번만 정의했어요. 안에 무엇이 있든 적용돼요.</p>`;
+  }
+  VZ.setupViewToggle('#groupToggle', {}, null);
+  document.getElementById('groupToggle').addEventListener('click', e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    if(b.dataset.v==='flat') renderFlat(); else renderGrouped();
+  });
+  renderFlat();
+})();
+
+// ---------- STEP 2 : 중첩 (상위 평화↔전투 + 하위 FSM) ----------
+(function(){
+  // 상위 FSM
+  const topStates = [
+    {id:'peace',  label:'평화', x:150, y:120},
+    {id:'combat', label:'전투', x:420, y:120},
+  ];
+  const topTrans = [
+    {from:'peace',  to:'combat', label:'적 발견'},
+    {from:'combat', to:'peace',  label:'적 소탕'},
+  ];
+  // 하위 FSM 정의: 상위상태별로 다른 내부 그래프
+  const subDefs = {
+    peace: {
+      states: [{id:'patrol', label:'순찰', x:240, y:130}],
+      trans:  [{from:'patrol', to:'patrol', label:'반복'}],
+      order:  ['patrol'],
+      init:   'patrol',
+    },
+    combat: {
+      states: [
+        {id:'aim',    label:'겨냥',   x:130, y:90},
+        {id:'fire',   label:'발사',   x:360, y:90},
+        {id:'reload', label:'재장전', x:240, y:230},
+      ],
+      trans: [
+        {from:'aim',    to:'fire',   label:'조준완료'},
+        {from:'fire',   to:'reload', label:'탄약소진'},
+        {from:'reload', to:'aim',    label:'장전완료'},
+      ],
+      order: ['aim','fire','reload'],
+      init:  'aim',
+    },
+  };
+  let topMode = 'peace';
+  let subCur  = subDefs.peace.init;
+
+  function renderTop(){
+    const t = topTrans.map(x=>({...x,
+      active: (topMode==='peace' && x.from==='peace') || (topMode==='combat' && x.from==='combat')}));
+    document.getElementById('topBoard').innerHTML =
+      SM.draw(topStates, t, {W:560, H:240, active:topMode, r:34});
+  }
+  function renderSub(){
+    const def = subDefs[topMode];
+    const t = def.trans.map(x=>({...x, active: x.from===subCur}));
+    document.getElementById('subBoard').innerHTML =
+      SM.draw(def.states, t, {W:520, H:300, active:subCur, r:34});
+    const topLab = topStates.find(s=>s.id===topMode).label;
+    const subLab = def.states.find(s=>s.id===subCur).label;
+    document.getElementById('nestInfo').innerHTML =
+      `<div class="ttl">상위 <b>${topLab}</b> · 하위 <b>${subLab}</b></div>
+       <p style="margin:0">${topMode==='peace'
+         ? '평화 상태의 내부는 <b>순찰</b> 자기전이뿐이에요. 적을 발견하면 상위가 전투로 전이해요.'
+         : '전투 상태 내부에서 <b>겨냥 → 발사 → 재장전</b>이 순환해요. 적을 소탕하면 상위가 평화로 돌아가고, 다음 전투 진입 시 다시 <b>겨냥</b>부터 시작해요.'}</p>`;
+  }
+  function setMode(m){
+    topMode = m;
+    subCur  = subDefs[m].init;   // 상위 전이 시 하위는 초기상태로 진입
+    renderTop(); renderSub();
+  }
+  // 하위 한 틱: 현재 하위상태의 (첫) 전이를 따라 이동
+  document.getElementById('subStep').onclick = ()=>{
+    const def = subDefs[topMode];
+    const idx = def.order.indexOf(subCur);
+    subCur = def.order[(idx+1) % def.order.length];
+    renderSub();
+  };
+  VZ.setupViewToggle('#modeToggle', {}, null);
+  document.getElementById('modeToggle').addEventListener('click', e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    setMode(b.dataset.v);
+  });
+  setMode('peace');
+})();
+
+// ---------- STEP 3 : 전이 수 비교 ----------
+(function(){
+  // 모델: 지상 하위상태 n개. 이들 사이 이동전이는 동일(양쪽 모델 공통).
+  // 공통 전이 = {사망, 피격, 중단} 3종류, 각각 "어떤 지상 상태에서든" 발동.
+  const COMMON = 3;
+  const slider = document.getElementById('nSub');
+  function render(){
+    const n = +slider.value;
+    document.getElementById('nSubv').textContent = n;
+    // 하위상태 간 이동전이(체인): n-1개 (양 모델 공통, 비교에서 제외해도 되지만 합계엔 포함)
+    const moveT = n - 1;
+    // 평평: 공통 전이를 상태마다 → COMMON * n
+    const flat = moveT + COMMON * n;
+    // HFSM: 공통 전이를 상위에서 한 번 → COMMON
+    const h = moveT + COMMON;
+    document.getElementById('cntFlat').textContent = flat + '개';
+    document.getElementById('cntH').textContent = h + '개';
+    document.getElementById('flatBreak').innerHTML =
+      `이동 ${moveT} + 공통(${COMMON})×상태(${n}) = <b>${flat}</b>`;
+    document.getElementById('hBreak').innerHTML =
+      `이동 ${moveT} + 공통 ${COMMON}(상위 1회) = <b>${h}</b>`;
+    const max = Math.max(flat, h, 1);
+    document.getElementById('cntBars').innerHTML =
+      VZ.barRow('평평한 FSM', flat/max, {color:'var(--k)', pctText: flat+'개'}) +
+      VZ.barRow('HFSM',       h/max,    {color:'var(--good)', pctText: h+'개'});
+  }
+  slider.addEventListener('input', render);
+  render();
+})();
+</script>
+</body>
+</html>

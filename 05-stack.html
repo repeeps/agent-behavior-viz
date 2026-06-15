@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>05 스택 · 행동 설계, 눈으로 보기</title>
+<link rel="stylesheet" href="shared/theme.css">
+<style>
+  /* 세로 스택 박스 시각화 */
+  .stackwrap{display:flex; flex-direction:column-reverse; gap:7px; min-height:240px;
+    justify-content:flex-start; padding:14px; border-radius:14px; background:var(--panel-2);
+    border:1px dashed var(--line); position:relative;}
+  .stackwrap .empty{color:var(--faint); font-family:'JetBrains Mono',monospace; font-size:12px;
+    text-align:center; padding:24px 0;}
+  .stackitem{display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:11px 14px; border-radius:10px; background:var(--panel); border:1px solid var(--line);
+    font-weight:700; font-size:15px; animation:rise .35s ease both;}
+  .stackitem.top{border-color:var(--hot); background:rgba(251,191,36,.12); color:var(--hot);
+    box-shadow:0 6px 18px rgba(251,191,36,.18);}
+  .stackitem .depth{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); font-weight:400;}
+  .stackitem.top .depth{color:var(--hot);}
+  .stacktop-tag{position:absolute; right:12px; top:10px; font-family:'JetBrains Mono',monospace;
+    font-size:10px; letter-spacing:.15em; color:var(--hot); text-transform:uppercase;}
+  .nowstate{font-family:'JetBrains Mono',monospace; font-size:13px;}
+  .nowstate b{color:var(--hot);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topnav" id="topnav"></div>
+
+  <header>
+    <div class="tag">PART 1 · FINITE STATE MACHINE</div>
+    <h1>상태 스택 — 되돌아갈 곳을 기억하다</h1>
+    <p class="intro">일반 FSM은 "지금 어떤 상태인지"만 알 뿐, <b>어디서 왔는지</b>는 모르죠. 일시정지 후 정확히 직전 화면으로 돌아오려면 <b>상태 스택</b>이 필요해요. 상태를 <b>push</b>로 쌓고 <b>pop</b>으로 꺼내는 푸시다운 오토마타(Pushdown Automaton)를 직접 눌러 봅시다.</p>
+  </header>
+
+  <nav class="stepper" id="stepper">
+    <button data-s="0" class="active">00 · 왜 스택?</button>
+    <button data-s="1">01 · push / pop</button>
+    <button data-s="2">02 · 중첩 메뉴</button>
+    <button data-s="3">03 · FSM과의 차이</button>
+  </nav>
+
+  <!-- STEP 0 -->
+  <section class="panel show" data-panel="0">
+    <span class="kicker" style="color:var(--hot)">Step 00 — Remember Where to Return</span>
+    <h2>되돌아갈 곳을 기억해야 할 때</h2>
+    <p class="lead">일반 FSM의 전이는 "다음 상태가 어디인지"가 <b>미리 고정</b>돼 있어요. 그런데 일시정지처럼 <b>"하던 걸 멈췄다가 정확히 그 자리로"</b> 돌아가야 할 땐 문제가 생기죠 — 멈추기 직전이 어떤 상태였는지 FSM은 기억하지 못하거든요.</p>
+    <div class="callout q">
+      <div class="ttl">FSM의 한계</div>
+      <p style="margin:0">"게임플레이 중 일시정지했다"고 해봐요. 일시정지에서 재개하면 <code>게임플레이</code>로 돌아가야 해요. 그런데 만약 <code>메뉴 화면</code>에서도 일시정지할 수 있다면? 일반 FSM은 <b>재개 시 어디로 갈지 화살표를 하나로 못 정해요.</b></p>
+    </div>
+    <div class="callout good">
+      <div class="ttl">스택이 주는 능력</div>
+      <p style="margin:0">멈추기 직전 상태를 <b>스택에 쌓아두면(push)</b>, 재개할 때 <b>맨 위를 꺼내(pop)</b> 정확히 그리로 복귀해요. 스택은 곧 <b>"상태의 기억"</b>이에요 — 어디서 왔는지를 LIFO(후입선출) 순서로 보관하죠.</p>
+    </div>
+    <p class="note" style="margin-top:6px">→ 다음 스텝에서 실제 배열 스택으로 <b>push / pop</b> 을 눌러 봅니다.</p>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="panel" data-panel="1">
+    <span class="kicker" style="color:var(--q)">Step 01 — push / pop</span>
+    <h2>일시정지는 push, 재개는 pop</h2>
+    <p class="lead">게임플레이 중 <b>일시정지</b>하면 <code>pause</code> 상태를 스택에 <b>push</b>해요. <b>재개</b>하면 <code>pause</code>를 <b>pop</b>해서 아래에 깔려 있던 <code>게임플레이</code>로 정확히 복귀하죠. 스택 맨 위가 곧 <b>현재 상태</b>예요.</p>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div style="width:230px">
+        <div class="label">상태 스택 (맨 위 = 현재)</div>
+        <div class="stackwrap" id="s1stack"></div>
+      </div>
+      <div style="flex:1;min-width:220px">
+        <div class="row" style="gap:8px;margin-bottom:12px">
+          <button class="btn" id="s1push">⏸ 일시정지 (push)</button>
+          <button class="btn" id="s1pop">▶ 재개 (pop)</button>
+        </div>
+        <div id="s1info" class="callout q"></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px">→ <b>push</b>는 위에 쌓고, <b>pop</b>은 맨 위만 꺼내요(LIFO). 바닥의 <code>게임플레이</code>는 절대 사라지지 않아서, 몇 번을 일시정지·재개해도 항상 같은 자리로 돌아와요.</p>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" data-panel="2">
+    <span class="kicker" style="color:var(--v)">Step 02 — Nested Menus</span>
+    <h2>중첩 메뉴: 깊이 들어갔다 정확히 되돌아오기</h2>
+    <p class="lead"><code>게임</code> → <code>설정</code> → <code>키설정</code> 으로 들어갈 때마다 화면을 <b>push</b>해 스택이 깊어져요. <b>뒤로</b>를 누르면 <b>pop</b>하며 <b>직전 화면</b>으로 한 단계씩 정확히 복귀하죠. 깊이가 어떻게 변하는지 보세요.</p>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div style="width:230px">
+        <div class="label">화면 스택 · 깊이 <span id="s2depth" class="mono" style="color:var(--hot)">1</span></div>
+        <div class="stackwrap" id="s2stack"></div>
+      </div>
+      <div style="flex:1;min-width:220px">
+        <div class="row" id="s2btns" style="gap:8px;margin-bottom:12px"></div>
+        <div class="row" style="gap:8px;margin-bottom:12px"><button class="btn" id="s2back">↩ 뒤로 (pop)</button></div>
+        <div id="s2info" class="callout v"></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px">→ 들어간 순서의 <b>정확히 역순</b>으로 빠져나와요. <code>키설정</code>에서 뒤로 가면 <code>설정</code>, 또 뒤로 가면 <code>게임</code>. 어느 깊이에서든 "직전이 무엇이든 그리로" 돌아가는 게 스택의 힘이에요.</p>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" data-panel="3">
+    <span class="kicker" style="color:var(--good)">Step 03 — Stack vs. Plain FSM</span>
+    <h2>FSM과의 차이: 고정 전이 vs. 기억된 복귀</h2>
+    <div class="grid3">
+      <div class="card"><span class="tagchip k">일반 FSM</span><h4 style="margin-top:8px">전이 대상이 고정</h4><p class="note">"이 상태에서 나가면 <b>항상 저 상태</b>로." 화살표가 미리 박혀 있어요.</p></div>
+      <div class="card"><span class="tagchip q">상태 스택</span><h4 style="margin-top:8px">직전으로 복귀</h4><p class="note">"이전이 <b>무엇이든 그리로</b>." 어디서 왔는지를 스택이 기억해요.</p></div>
+      <div class="card"><span class="tagchip v">정체</span><h4 style="margin-top:8px">상태의 기억</h4><p class="note">스택 = 거쳐온 상태들의 <b>역순 기록</b>. push/pop으로만 접근(LIFO).</p></div>
+    </div>
+    <div class="callout good" style="margin-top:18px">
+      <div class="ttl">한 문장 요약</div>
+      <p style="margin:0 0 10px">일반 FSM은 "<code>일시정지 → 게임플레이</code>"처럼 복귀 대상을 <b>하나로 못 박지만</b>, 스택은 push해둔 <b>그 무엇이든</b> pop으로 정확히 되살려요. 그래서 스택은 <b>상태의 기억</b>이에요.</p>
+      <p style="margin:0">⚠ 한계 — 스택만으로는 "걸으면서 동시에 총 쏘기" 같은 <b>여러 행동의 동시 진행</b>을 다루기 어려워요(한 번에 맨 위 하나만 활성).</p>
+    </div>
+  </section>
+
+  <p class="foot">// push/pop은 실제 JS 배열 스택으로 동작합니다. · <a href="index.html">목차</a></p>
+</div>
+
+<script src="shared/lib.js"></script>
+<script>
+VZ.mountTopnav('#topnav', '05 · Stack');
+VZ.setupStepper();
+
+// 스택을 세로 박스로 렌더 (맨 위 = 현재 = 강조)
+function renderStack(el, stack, labelOf){
+  if(!stack.length){ el.innerHTML = '<div class="empty">스택 비어 있음</div>'; return; }
+  // column-reverse 이므로 배열 순서대로 넣으면 끝(=top)이 위로 감
+  el.innerHTML = '<span class="stacktop-tag">▲ top</span>' + stack.map((s,i)=>{
+    const isTop = i === stack.length - 1;
+    return `<div class="stackitem ${isTop?'top':''}">
+      <span>${labelOf(s)}</span><span class="depth">[${i}]</span></div>`;
+  }).join('');
+}
+
+// ---------- STEP 1 : push / pop (실제 배열 스택) ----------
+(function(){
+  const LBL = { play:'게임플레이', pause:'일시정지' };
+  let stack = ['play'];               // 실제 JS 배열 스택
+  let msg = '게임플레이 중 — 스택 바닥에 게임플레이가 깔려 있어요.';
+  const stackEl = document.getElementById('s1stack');
+  const info = document.getElementById('s1info');
+  function render(){
+    renderStack(stackEl, stack, s=>LBL[s]);
+    const top = stack[stack.length-1] || null;
+    info.innerHTML =
+      `<div class="ttl">현재 상태(top): ${top?LBL[top]:'없음'}</div>
+       <p class="nowstate" style="margin:8px 0 0">stack = [ ${stack.map(s=>LBL[s]).join(' , ')} ]</p>
+       <p style="margin:8px 0 0">${msg}</p>`;
+  }
+  document.getElementById('s1push').onclick = ()=>{
+    const top = stack[stack.length-1];
+    if(top === 'pause'){ msg='이미 일시정지 중이에요 — 또 push하지 않아요.'; render(); return; }
+    stack.push('pause');              // push
+    msg='일시정지를 push! 맨 위가 일시정지로 바뀌었어요. 아래 게임플레이는 그대로 보존돼요.';
+    render();
+  };
+  document.getElementById('s1pop').onclick = ()=>{
+    const top = stack[stack.length-1];
+    if(top !== 'pause'){ msg='지금은 게임플레이 — pop할 일시정지가 없어요(바닥은 못 꺼냄).'; render(); return; }
+    const popped = stack.pop();       // pop
+    const back = stack[stack.length-1];
+    msg=`${LBL[popped]}를 pop! 아래에 있던 ${LBL[back]}로 정확히 복귀했어요.`;
+    render();
+  };
+  render();
+})();
+
+// ---------- STEP 2 : 중첩 메뉴 (실제 배열 스택) ----------
+(function(){
+  const LBL = { game:'게임', settings:'설정', keys:'키설정' };
+  // 이 화면에서 더 깊이 들어갈 수 있는 화면 (push 대상)
+  const NEXT = { game:'settings', settings:'keys', keys:null };
+  let stack = ['game'];
+  let msg = '게임 화면 — 여기서 설정으로 들어갈 수 있어요.';
+  const stackEl = document.getElementById('s2stack');
+  const depthEl = document.getElementById('s2depth');
+  const info = document.getElementById('s2info');
+  const btns = document.getElementById('s2btns');
+
+  function render(){
+    renderStack(stackEl, stack, s=>LBL[s]);
+    depthEl.textContent = stack.length;
+    const top = stack[stack.length-1];
+    const nxt = NEXT[top];
+    // 들어가기 버튼: 현재 화면에서 더 깊이 갈 수 있을 때만
+    btns.innerHTML = nxt
+      ? `<button class="btn" data-go="${nxt}">▼ ${LBL[nxt]} 열기 (push)</button>`
+      : `<button class="btn" disabled style="opacity:.4;cursor:default">더 들어갈 곳 없음</button>`;
+    info.innerHTML =
+      `<div class="ttl">현재 화면(top): ${LBL[top]}</div>
+       <p class="nowstate" style="margin:8px 0 0">stack = [ ${stack.map(s=>LBL[s]).join(' → ')} ]</p>
+       <p style="margin:8px 0 0">${msg}</p>`;
+  }
+  btns.addEventListener('click', e=>{
+    const b=e.target.closest('button[data-go]'); if(!b) return;
+    const go=b.dataset.go;
+    stack.push(go);                   // push
+    msg=`${LBL[go]} 화면을 push! 깊이 ${stack.length}로 들어왔어요.`;
+    render();
+  });
+  document.getElementById('s2back').onclick = ()=>{
+    if(stack.length <= 1){ msg='최상위(게임) 화면이라 더 뒤로 갈 수 없어요.'; render(); return; }
+    const popped = stack.pop();       // pop
+    const back = stack[stack.length-1];
+    msg=`${LBL[popped]}에서 뒤로 — ${LBL[back]}로 정확히 복귀(깊이 ${stack.length}).`;
+    render();
+  };
+  render();
+})();
+</script>
+</body>
+</html>
