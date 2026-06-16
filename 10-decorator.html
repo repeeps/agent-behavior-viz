@@ -55,7 +55,7 @@
   <section class="panel" data-panel="2">
     <span class="kicker" style="color:var(--v)">Step 02 — Repeater &amp; Others</span>
     <h2>반복하거나, 타이밍을 건다</h2>
-    <p class="lead"><b>Repeater(↻)</b>는 자식을 반복 실행해요(여기선 결과를 그대로 위로 전달). 그 밖에도 결과·타이밍을 손보는 데코레이터가 있어요.</p>
+    <p class="lead"><b>Repeater(↻)</b>는 원래 자식을 <b>N번(또는 성공할 때까지) 반복</b>시키는 데코레이터예요. 단, 이 데모 엔진은 한 틱에 결과를 한 번만 보여줘서 <b>반복 자체는 생략</b>했어요 — 대신 아래 <b>Cooldown(쿨다운)</b>으로 "타이밍을 거는" 데코레이터를 직접 만져보면 감이 와요.</p>
     <div class="grid3" style="margin-bottom:6px">
       <div class="card" style="border-color:rgba(192,132,252,.4)"><h4 style="color:var(--v)">↻ Repeater</h4><p class="note">자식을 N번 반복. 여기 엔진에선 자식 결과를 그대로 전달해요.</p></div>
       <div class="card" style="border-color:rgba(52,211,153,.4)"><h4 style="color:var(--good)">✓ Succeeder</h4><p class="note">자식이 뭘 돌려주든 <b>항상 Success</b>. 실패해도 트리를 계속 진행시킬 때.</p></div>

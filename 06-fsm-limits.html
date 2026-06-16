@@ -43,7 +43,7 @@
   <section class="panel" data-panel="1">
     <span class="kicker" style="color:var(--q)">Step 01 — Global Event Nightmare</span>
     <h2>전역 이벤트의 악몽</h2>
-    <p class="lead">"<b>어디서든</b> 사망하면 → 리스폰" 같은 <b>전역 전이</b>를 떠올려 보세요. FSM엔 "모든 상태"라는 개념이 없어서, <b>상태 하나하나마다</b> 똑같은 화살표를 <b>일일이</b> 그어줘야 해요. 전역 이벤트 1개를 추가할 때마다 전이가 <b>N개씩</b> 더 늘어납니다.</p>
+    <p class="lead">"<b>어디서든</b> 사망하면 → 리스폰" 같은 <b>전역 전이</b>를 떠올려 보세요. FSM엔 "모든 상태"라는 개념이 없어서, <b>상태 하나하나마다</b> 똑같은 화살표를 <b>일일이</b> 그어줘야 해요. 전역 이벤트 1개를 추가할 때마다 전이가 <b>상태 수에 비례해(최대 N−1개씩)</b> 더 늘어나요. 상태가 많아질수록 이 비용이 누적돼 그래프가 화살표로 뒤덮입니다.</p>
     <div class="row" style="gap:24px;align-items:flex-start">
       <div class="chart-wrap" id="globalGraph" style="flex:0 0 auto"></div>
       <div style="flex:1;min-width:220px">

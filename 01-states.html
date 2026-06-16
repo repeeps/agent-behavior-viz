@@ -138,12 +138,12 @@ const SM = VZ.SM;
   const trans = [];
   Object.entries(T).forEach(([from,m])=>Object.entries(m).forEach(([lab,to])=>trans.push({from,to,label:lab})));
   const inputs = ['걷기','달리기','멈춤','점프','감속','착지'];
-  let cur = 'idle', lastMsg = '시작: 정지 상태';
+  let cur = 'idle', lastMsg = '시작: 정지 상태', lastEdge = null;
   const btns = document.getElementById('charBtns');
   btns.innerHTML = inputs.map(i=>`<button class="btn" data-in="${i}">${i}</button>`).join('');
   function render(){
     const active = cur;
-    const t = trans.map(x=>({...x, active:false}));
+    const t = trans.map(x=>({...x, active: !!(lastEdge && x.from===lastEdge.from && x.to===lastEdge.to)}));
     document.getElementById('charBoard').innerHTML = SM.draw(states, t, {W:560,H:320,active});
     // 현재 상태에서 가능한 입력만 활성 버튼
     btns.querySelectorAll('button').forEach(b=>{
@@ -156,8 +156,8 @@ const SM = VZ.SM;
   btns.addEventListener('click', e=>{
     const b=e.target.closest('button'); if(!b) return;
     const inp=b.dataset.in, nxt=T[cur] && T[cur][inp];
-    if(nxt){ lastMsg = `"${inp}" → ${states.find(s=>s.id===nxt).label} 로 전이!`; cur=nxt; }
-    else { lastMsg = `"${inp}" 입력 — 현재 상태엔 이 전이가 없어요(무시).`; }
+    if(nxt){ lastMsg = `"${inp}" → ${states.find(s=>s.id===nxt).label} 로 전이!`; lastEdge={from:cur, to:nxt}; cur=nxt; }
+    else { lastMsg = `"${inp}" 입력 — 현재 상태엔 이 전이가 없어요(무시).`; lastEdge=null; }
     render();
   });
   render();
