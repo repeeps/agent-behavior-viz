@@ -160,9 +160,9 @@ function runTick(treeBuilder, bb, boardId, statusElId, logId, nameMap, explain){
   document.getElementById('tickBtn').onclick = ()=>{
     runTick(buildThreatTree, {lowHp, enemyClose}, 'treeBoard1', 'rootStatus', 'tickLog', threatNames,
       (status)=>{
-        if(lowHp) return '체력이 낮아 <b style="color:var(--k)">도망</b> Sequence가 성공 → Selector가 거기서 멈춰요(공격·순찰은 평가조차 안 함). 도망이 최우선이니까요.';
-        if(enemyClose) return '체력은 충분 → 도망 조건 실패 → 다음 가지 <b style="color:var(--hot)">공격</b> Sequence가 성공 → Selector 멈춤(순찰은 건너뜀).';
-        return '도망·공격 조건이 모두 실패 → 마지막 가지 <b style="color:var(--good)">순찰</b>(항상 성공)에 도달 → 기본 행동(fallback)으로 동작.';
+        if(lowHp) return '체력이 낮아 <b style="color:var(--pink)">도망</b> Sequence가 성공 → Selector가 거기서 멈춰요(공격·순찰은 평가조차 안 함). 도망이 최우선이니까요.';
+        if(enemyClose) return '체력은 충분 → 도망 조건 실패 → 다음 가지 <b style="color:var(--blue)">공격</b> Sequence가 성공 → Selector 멈춤(순찰은 건너뜀).';
+        return '도망·공격 조건이 모두 실패 → 마지막 가지 <b style="color:var(--slate)">순찰</b>(항상 성공)에 도달 → 기본 행동(fallback)으로 동작.';
       });
   };
   reset();

@@ -69,7 +69,7 @@
         <button data-v="peace" class="on">평화 모드</button>
         <button data-v="combat">전투 모드</button>
       </div>
-      <button class="btn" id="subStep">▶ 하위 한 틱</button>
+      <button class="btn" id="subStep">▶ 다음 단계(순환)</button>
     </div>
     <div class="row" style="gap:24px;align-items:flex-start">
       <div style="flex:1;min-width:280px">
@@ -82,7 +82,7 @@
       </div>
     </div>
     <div id="nestInfo" class="callout v" style="margin-top:8px"></div>
-    <p class="note" style="margin-top:14px">→ <b>평화</b>일 땐 하위가 <b>순찰</b> 한 상태뿐이에요. <b>전투</b>로 전이하면 하위 FSM이 <b>겨냥(초기상태)</b>부터 시작하죠. "하위 한 틱"으로 안쪽 사이클을 돌려 보세요. 상위가 바뀌면 안쪽은 <b>리셋</b>됩니다.</p>
+    <p class="note" style="margin-top:14px">→ <b>평화</b>일 땐 하위가 <b>순찰</b> 한 상태뿐이에요. <b>전투</b>로 전이하면 하위 FSM이 <b>겨냥(초기상태)</b>부터 시작하죠. "다음 단계(순환)"로 안쪽 사이클을 돌려 보세요(여기선 조준완료·탄약소진 같은 조건이 충족됐다고 가정하고 한 칸씩 진행). 상위가 바뀌면 안쪽은 <b>리셋</b>됩니다.</p>
   </section>
 
   <!-- STEP 3 -->
@@ -292,7 +292,7 @@ const SM = VZ.SM;
     subCur  = subDefs[m].init;   // 상위 전이 시 하위는 초기상태로 진입
     renderTop(); renderSub();
   }
-  // 하위 한 틱: 현재 하위상태의 (첫) 전이를 따라 이동
+  // 다음 단계(순환): 조건 충족을 가정하고 현재 하위상태의 (첫) 전이를 따라 한 칸 이동
   document.getElementById('subStep').onclick = ()=>{
     const def = subDefs[topMode];
     const idx = def.order.indexOf(subCur);
