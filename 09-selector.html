@@ -32,7 +32,7 @@
     <div class="chart-wrap" id="treeBoard0"></div>
     <div class="callout q" style="margin-top:18px">
       <div class="ttl">단축평가 규칙 (OR)</div>
-      <p style="margin:0 0 8px">왼→오로 보다가 <b style="color:var(--good)">첫 Success</b>를 만나면 <b>즉시 멈춤</b> → 그 뒤 가지는 평가조차 안 해요.</p>
+      <p style="margin:0 0 8px">왼→오로 보다가 <b style="color:var(--good)">첫 Success</b>를 만나면 <b>즉시 멈춤</b> → 그 뒤 가지는 평가조차 안 해요. (자식이 <b style="color:var(--hot)">Running</b>(진행 중)이어도 거기서 멈추고 Selector도 Running을 돌려줘요 — Sequence와 대칭.)</p>
       <p style="margin:0"><code>success || success || ...</code> 처럼 — 하나라도 참이면 전체 참. 왼쪽일수록 <b>높은 우선순위</b>.</p>
     </div>
     <p class="note" style="margin-top:6px">→ Sequence(<span class="mono" style="color:var(--hot)">→</span>, AND)와 정확히 거울상이에요. Sequence는 첫 <b>실패</b>에서 멈추고, Selector는 첫 <b>성공</b>에서 멈춰요.</p>
